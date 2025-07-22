@@ -1,0 +1,78 @@
+{
+  "name": "@felixgeelhaar/govee-api-client",
+  "version": "1.0.0",
+  "description": "Enterprise-grade TypeScript client library for the Govee Developer REST API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "lint": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "prepublishOnly": "npm run build",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "govee",
+    "api",
+    "client",
+    "typescript",
+    "smart-devices",
+    "lighting"
+  ],
+  "author": "Felix Geelhaar <felix@geelhaar.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "pino": "^8.16.0",
+    "p-limit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^15.0.0",
+    "msw": "^2.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.2.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/felixgeelhaar/govee-api-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/felixgeelhaar/govee-api-client/issues"
+  },
+  "homepage": "https://github.com/felixgeelhaar/govee-api-client#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,js}": [
+      "prettier --write",
+      "npm run lint"
+    ],
+    "**/*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  }
+}
