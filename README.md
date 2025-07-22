@@ -239,7 +239,7 @@ await client.sendCommand(deviceId, model, setBrightness);
 
 ## Requirements
 
-- Node.js 16.0.0 or higher
+- Node.js 18.0.0 or higher
 - Valid Govee Developer API key
 
 ## Development
