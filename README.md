@@ -269,47 +269,6 @@ MIT © [Felix Geelhaar]
 
 Contributions are welcome! Please ensure all tests pass and maintain the existing code style.
 
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/felixgeelhaar/govee-api-client.git
-cd govee-api-client
-
-# Install dependencies
-npm install
-
-# Run tests in watch mode
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Format code
-npm run format
-
-# Build the project
-npm run build
-```
-
-### Git Hooks
-
-This project uses Husky for git hooks:
-
-- **pre-commit**: Runs lint-staged (prettier + linting)
-- **pre-push**: Runs full test suite with coverage
-
-### Pull Requests
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass and coverage is above 80%
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
-
 ## API Documentation
 
 For more information about the Govee Developer API, visit: https://govee-public.s3.amazonaws.com/developer-docs/GoveeDeveloperAPIReference.pdf
