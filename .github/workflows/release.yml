@@ -23,6 +23,8 @@ jobs:
       run: |
         rm -rf node_modules
         npm ci
+        # Workaround for npm optional dependencies bug with Rollup
+        npm install @rollup/rollup-linux-x64-gnu --no-save
       env:
         NODE_OPTIONS: --experimental-global-webcrypto
       
@@ -59,6 +61,8 @@ jobs:
       run: |
         rm -rf node_modules
         npm ci
+        # Workaround for npm optional dependencies bug with Rollup
+        npm install @rollup/rollup-linux-x64-gnu --no-save
       env:
         NODE_OPTIONS: --experimental-global-webcrypto
       
