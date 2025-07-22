@@ -23,6 +23,8 @@ jobs:
       run: |
         rm -rf node_modules package-lock.json
         npm install
+      env:
+        NODE_OPTIONS: --experimental-global-webcrypto
       
     - name: Run linter
       run: npm run lint
@@ -32,6 +34,8 @@ jobs:
       
     - name: Run tests
       run: npm run test:coverage -- --run
+      env:
+        NODE_OPTIONS: --experimental-global-webcrypto
       
     - name: Build project
       run: npm run build
@@ -55,6 +59,8 @@ jobs:
       run: |
         rm -rf node_modules package-lock.json
         npm install
+      env:
+        NODE_OPTIONS: --experimental-global-webcrypto
       
     - name: Build project
       run: npm run build
