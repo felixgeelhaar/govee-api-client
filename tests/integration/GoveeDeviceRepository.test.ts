@@ -423,5 +423,311 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
       await expect(repository.findAll()).rejects.toThrow(GoveeApiError);
     });
+
+    it('should filter out devices with empty device IDs', async () => {
+      const responseWithInvalidDeviceId = {
+        code: 200,
+        message: 'Success',
+        data: {
+          devices: [
+            {
+              deviceId: 'device123',
+              model: 'H6159',
+              deviceName: 'Living Room Light',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
+            },
+            {
+              deviceId: '',
+              model: 'H6160',
+              deviceName: 'Invalid Device',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', 'brightness']
+            },
+            {
+              deviceId: 'device789',
+              model: 'H6161',
+              deviceName: 'Kitchen Light',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness']
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/devices`, () => {
+          return HttpResponse.json(responseWithInvalidDeviceId);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(2);
+      expect(devices[0].deviceId).toBe('device123');
+      expect(devices[1].deviceId).toBe('device789');
+    });
+
+    it('should filter out devices with null/undefined device IDs', async () => {
+      const responseWithNullDeviceId = {
+        code: 200,
+        message: 'Success',
+        data: {
+          devices: [
+            {
+              deviceId: 'device123',
+              model: 'H6159',
+              deviceName: 'Living Room Light',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
+            },
+            {
+              deviceId: null,
+              model: 'H6160',
+              deviceName: 'Invalid Device',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', 'brightness']
+            },
+            {
+              // deviceId missing entirely
+              model: 'H6161',
+              deviceName: 'Another Invalid Device',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness']
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/devices`, () => {
+          return HttpResponse.json(responseWithNullDeviceId);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(1);
+      expect(devices[0].deviceId).toBe('device123');
+    });
+
+    it('should filter out devices with whitespace-only device IDs', async () => {
+      const responseWithWhitespaceDeviceId = {
+        code: 200,
+        message: 'Success',
+        data: {
+          devices: [
+            {
+              deviceId: 'device123',
+              model: 'H6159',
+              deviceName: 'Living Room Light',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
+            },
+            {
+              deviceId: '   ',
+              model: 'H6160',
+              deviceName: 'Invalid Device',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', 'brightness']
+            },
+            {
+              deviceId: '\t\n',
+              model: 'H6161',
+              deviceName: 'Another Invalid Device',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness']
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/devices`, () => {
+          return HttpResponse.json(responseWithWhitespaceDeviceId);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(1);
+      expect(devices[0].deviceId).toBe('device123');
+    });
+
+    it('should filter out devices with invalid models', async () => {
+      const responseWithInvalidModel = {
+        code: 200,
+        message: 'Success',
+        data: {
+          devices: [
+            {
+              deviceId: 'device123',
+              model: 'H6159',
+              deviceName: 'Living Room Light',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
+            },
+            {
+              deviceId: 'device456',
+              model: '',
+              deviceName: 'Invalid Model Device',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', 'brightness']
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/devices`, () => {
+          return HttpResponse.json(responseWithInvalidModel);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(1);
+      expect(devices[0].deviceId).toBe('device123');
+    });
+
+    it('should filter out devices with invalid device names', async () => {
+      const responseWithInvalidDeviceName = {
+        code: 200,
+        message: 'Success',
+        data: {
+          devices: [
+            {
+              deviceId: 'device123',
+              model: 'H6159',
+              deviceName: 'Living Room Light',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
+            },
+            {
+              deviceId: 'device456',
+              model: 'H6160',
+              deviceName: '',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', 'brightness']
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/devices`, () => {
+          return HttpResponse.json(responseWithInvalidDeviceName);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(1);
+      expect(devices[0].deviceId).toBe('device123');
+    });
+
+    it('should filter out devices with invalid supported commands', async () => {
+      const responseWithInvalidSupportCmds = {
+        code: 200,
+        message: 'Success',
+        data: {
+          devices: [
+            {
+              deviceId: 'device123',
+              model: 'H6159',
+              deviceName: 'Living Room Light',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
+            },
+            {
+              deviceId: 'device456',
+              model: 'H6160',
+              deviceName: 'Invalid Commands Device',
+              controllable: true,
+              retrievable: false,
+              supportCmds: null
+            },
+            {
+              deviceId: 'device789',
+              model: 'H6161',
+              deviceName: 'Empty Commands Device',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', '', 'brightness']
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/devices`, () => {
+          return HttpResponse.json(responseWithInvalidSupportCmds);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(1);
+      expect(devices[0].deviceId).toBe('device123');
+    });
+
+    it('should return empty array when all devices are invalid', async () => {
+      const responseWithAllInvalidDevices = {
+        code: 200,
+        message: 'Success',
+        data: {
+          devices: [
+            {
+              deviceId: '',
+              model: 'H6159',
+              deviceName: 'Invalid Device 1',
+              controllable: true,
+              retrievable: true,
+              supportCmds: ['turn', 'brightness']
+            },
+            {
+              deviceId: 'device456',
+              model: '',
+              deviceName: 'Invalid Device 2',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', 'brightness']
+            },
+            {
+              deviceId: 'device789',
+              model: 'H6161',
+              deviceName: '',
+              controllable: true,
+              retrievable: false,
+              supportCmds: ['turn', 'brightness']
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/devices`, () => {
+          return HttpResponse.json(responseWithAllInvalidDevices);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(0);
+    });
   });
 });
