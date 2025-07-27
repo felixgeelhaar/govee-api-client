@@ -189,19 +189,83 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         );
       }
 
-      const devices = apiResponse.data.devices.map(
-        device =>
-          new GoveeDevice(
-            device.deviceId,
-            device.model,
-            device.deviceName,
-            device.controllable,
-            device.retrievable,
-            device.supportCmds
-          )
-      );
+      const devices = apiResponse.data.devices
+        .filter(device => {
+          if (
+            !device.deviceId ||
+            typeof device.deviceId !== 'string' ||
+            device.deviceId.trim().length === 0
+          ) {
+            this.logger?.warn(
+              { device: { ...device, deviceId: '[INVALID]' } },
+              'Filtering out device with invalid device ID'
+            );
+            return false;
+          }
+          if (
+            !device.model ||
+            typeof device.model !== 'string' ||
+            device.model.trim().length === 0
+          ) {
+            this.logger?.warn(
+              { device: { ...device, model: '[INVALID]' } },
+              'Filtering out device with invalid model'
+            );
+            return false;
+          }
+          if (
+            !device.deviceName ||
+            typeof device.deviceName !== 'string' ||
+            device.deviceName.trim().length === 0
+          ) {
+            this.logger?.warn(
+              { device: { ...device, deviceName: '[INVALID]' } },
+              'Filtering out device with invalid device name'
+            );
+            return false;
+          }
+          if (!Array.isArray(device.supportCmds)) {
+            this.logger?.warn(
+              { device: { ...device, supportCmds: '[INVALID]' } },
+              'Filtering out device with invalid supported commands'
+            );
+            return false;
+          }
+          for (const cmd of device.supportCmds) {
+            if (typeof cmd !== 'string' || cmd.trim().length === 0) {
+              this.logger?.warn(
+                { device: { ...device, supportCmds: '[INVALID]' } },
+                'Filtering out device with invalid supported command'
+              );
+              return false;
+            }
+          }
+          return true;
+        })
+        .map(
+          device =>
+            new GoveeDevice(
+              device.deviceId,
+              device.model,
+              device.deviceName,
+              device.controllable,
+              device.retrievable,
+              device.supportCmds
+            )
+        );
 
-      this.logger?.info(`Successfully fetched ${devices.length} devices`);
+      const totalDevicesFromApi = apiResponse.data.devices.length;
+      const validDevices = devices.length;
+      const filteredDevices = totalDevicesFromApi - validDevices;
+
+      if (filteredDevices > 0) {
+        this.logger?.info(
+          `Successfully fetched ${validDevices} devices (filtered out ${filteredDevices} invalid devices from ${totalDevicesFromApi} total)`
+        );
+      } else {
+        this.logger?.info(`Successfully fetched ${validDevices} devices`);
+      }
+
       return devices;
     } catch (error) {
       this.logger?.error(error, 'Failed to fetch devices');
