@@ -11,10 +11,10 @@ export interface IGoveeDeviceRepository {
   /**
    * Retrieves the current state of a specific device
    */
-  findState(deviceId: string, model: string): Promise<DeviceState>;
+  findState(deviceId: string, sku: string): Promise<DeviceState>;
 
   /**
    * Sends a command to control a specific device
    */
-  sendCommand(deviceId: string, model: string, command: Command): Promise<void>;
+  sendCommand(deviceId: string, sku: string, command: Command): Promise<void>;
 }

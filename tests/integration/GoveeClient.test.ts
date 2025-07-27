@@ -4,39 +4,39 @@ import { setupServer } from 'msw/node';
 import { GoveeClient } from '../../src/GoveeClient';
 import { ColorRgb, ColorTemperature, Brightness } from '../../src/domain/value-objects';
 
-const BASE_URL = 'https://developer-api.govee.com/v1';
+const BASE_URL = 'https://openapi.api.govee.com';
 
 const mockDevicesResponse = {
   code: 200,
   message: 'Success',
-  data: {
-    devices: [
-      {
-        deviceId: 'living-room-123',
-        model: 'H6159',
-        deviceName: 'Living Room Light',
-        controllable: true,
-        retrievable: true,
-        supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-      },
-      {
-        deviceId: 'bedroom-456',
-        model: 'H6160',
-        deviceName: 'Bedroom Strip Light',
-        controllable: true,
-        retrievable: false,
-        supportCmds: ['turn', 'brightness']
-      },
-      {
-        deviceId: 'kitchen-789',
-        model: 'H6159',
-        deviceName: 'Kitchen Under Cabinet',
-        controllable: false,
-        retrievable: true,
-        supportCmds: []
-      }
-    ]
-  }
+  data: [
+    {
+      device: 'living-room-123',
+      sku: 'H6159',
+      deviceName: 'Living Room Light',
+      capabilities: [
+        { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+        { type: 'devices.capabilities.range', instance: 'brightness' },
+        { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+        { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+      ]
+    },
+    {
+      device: 'bedroom-456',
+      sku: 'H6160',
+      deviceName: 'Bedroom Strip Light',
+      capabilities: [
+        { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+        { type: 'devices.capabilities.range', instance: 'brightness' }
+      ]
+    },
+    {
+      device: 'kitchen-789',
+      sku: 'H6159',
+      deviceName: 'Kitchen Under Cabinet',
+      capabilities: []
+    }
+  ]
 };
 
 const mockStateResponse = {
@@ -44,14 +44,27 @@ const mockStateResponse = {
   message: 'Success',
   data: {
     device: 'living-room-123',
-    model: 'H6159',
-    properties: [
+    sku: 'H6159',
+    capabilities: [
       {
-        online: true,
-        powerSwitch: 1,
-        brightness: 75,
-        color: { r: 255, g: 128, b: 0 },
-        colorTem: 2700
+        type: 'devices.capabilities.on_off',
+        instance: 'powerSwitch',
+        state: { value: true }
+      },
+      {
+        type: 'devices.capabilities.range',
+        instance: 'brightness',
+        state: { value: 75 }
+      },
+      {
+        type: 'devices.capabilities.color_setting',
+        instance: 'colorRgb',
+        state: { value: { r: 255, g: 128, b: 0 } }
+      },
+      {
+        type: 'devices.capabilities.color_setting',
+        instance: 'colorTemperatureK',
+        state: { value: 2700 }
       }
     ]
   }
@@ -88,13 +101,13 @@ describe('GoveeClient Integration Tests', () => {
 
     // Setup default successful responses
     server.use(
-      http.get(`${BASE_URL}/devices`, () => {
+      http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
         return HttpResponse.json(mockDevicesResponse);
       }),
-      http.get(`${BASE_URL}/devices/state`, () => {
+      http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
         return HttpResponse.json(mockStateResponse);
       }),
-      http.put(`${BASE_URL}/devices/control`, () => {
+      http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
         return HttpResponse.json(mockCommandResponse);
       })
     );
@@ -136,7 +149,7 @@ describe('GoveeClient Integration Tests', () => {
       expect(devices).toHaveLength(2);
       expect(devices.every(d => d.canRetrieve())).toBe(true);
       expect(devices[0].deviceName).toBe('Living Room Light');
-      expect(devices[1].deviceName).toBe('Kitchen Under Cabinet');
+      expect(devices[1].deviceName).toBe('Bedroom Strip Light');
     });
 
     it('should find device by name (case insensitive)', async () => {
@@ -196,8 +209,9 @@ describe('GoveeClient Integration Tests', () => {
       let capturedCommand: any;
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          capturedCommand = await request.json();
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -205,31 +219,35 @@ describe('GoveeClient Integration Tests', () => {
       await client.turnOn('living-room-123', 'H6159');
 
       expect(capturedCommand.device).toBe('living-room-123');
-      expect(capturedCommand.model).toBe('H6159');
-      expect(capturedCommand.cmd).toEqual({ name: 'turn', value: 'on' });
+      expect(capturedCommand.sku).toBe('H6159');
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommand.capability.value).toBe('on');
     });
 
     it('should turn device off', async () => {
       let capturedCommand: any;
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          capturedCommand = await request.json();
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
       );
 
       await client.turnOff('living-room-123', 'H6159');
 
-      expect(capturedCommand.cmd).toEqual({ name: 'turn', value: 'off' });
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommand.capability.value).toBe('off');
     });
 
     it('should set brightness', async () => {
       let capturedCommand: any;
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          capturedCommand = await request.json();
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -237,15 +255,17 @@ describe('GoveeClient Integration Tests', () => {
       const brightness = new Brightness(50);
       await client.setBrightness('living-room-123', 'H6159', brightness);
 
-      expect(capturedCommand.cmd).toEqual({ name: 'brightness', value: 50 });
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.range');
+      expect(capturedCommand.capability.value).toBe(50);
     });
 
     it('should set color', async () => {
       let capturedCommand: any;
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          capturedCommand = await request.json();
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -253,15 +273,17 @@ describe('GoveeClient Integration Tests', () => {
       const color = new ColorRgb(255, 0, 128);
       await client.setColor('living-room-123', 'H6159', color);
 
-      expect(capturedCommand.cmd).toEqual({ name: 'color', value: { r: 255, g: 0, b: 128 } });
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommand.capability.value).toEqual({ r: 255, g: 0, b: 128 });
     });
 
     it('should set color temperature', async () => {
       let capturedCommand: any;
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          capturedCommand = await request.json();
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -269,7 +291,9 @@ describe('GoveeClient Integration Tests', () => {
       const colorTemp = new ColorTemperature(4000);
       await client.setColorTemperature('living-room-123', 'H6159', colorTemp);
 
-      expect(capturedCommand.cmd).toEqual({ name: 'colorTem', value: 4000 });
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommand.capability.instance).toBe('colorTemperatureK');
+      expect(capturedCommand.capability.value).toBe(4000);
     });
   });
 
@@ -278,9 +302,9 @@ describe('GoveeClient Integration Tests', () => {
       const capturedCommands: any[] = [];
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          const command = await request.json();
-          capturedCommands.push(command);
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -289,17 +313,19 @@ describe('GoveeClient Integration Tests', () => {
       await client.turnOnWithBrightness('living-room-123', 'H6159', brightness);
 
       expect(capturedCommands).toHaveLength(2);
-      expect(capturedCommands[0].cmd).toEqual({ name: 'turn', value: 'on' });
-      expect(capturedCommands[1].cmd).toEqual({ name: 'brightness', value: 80 });
+      expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[1].capability.type).toBe('devices.capabilities.range');
+      expect(capturedCommands[1].capability.value).toBe(80);
     });
 
     it('should turn on with color only', async () => {
       const capturedCommands: any[] = [];
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          const command = await request.json();
-          capturedCommands.push(command);
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -308,17 +334,19 @@ describe('GoveeClient Integration Tests', () => {
       await client.turnOnWithColor('living-room-123', 'H6159', color);
 
       expect(capturedCommands).toHaveLength(2);
-      expect(capturedCommands[0].cmd).toEqual({ name: 'turn', value: 'on' });
-      expect(capturedCommands[1].cmd).toEqual({ name: 'color', value: { r: 0, g: 255, b: 0 } });
+      expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommands[1].capability.value).toEqual({ r: 0, g: 255, b: 0 });
     });
 
     it('should turn on with color and brightness', async () => {
       const capturedCommands: any[] = [];
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          const command = await request.json();
-          capturedCommands.push(command);
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -328,18 +356,21 @@ describe('GoveeClient Integration Tests', () => {
       await client.turnOnWithColor('living-room-123', 'H6159', color, brightness);
 
       expect(capturedCommands).toHaveLength(3);
-      expect(capturedCommands[0].cmd).toEqual({ name: 'turn', value: 'on' });
-      expect(capturedCommands[1].cmd).toEqual({ name: 'color', value: { r: 0, g: 255, b: 0 } });
-      expect(capturedCommands[2].cmd).toEqual({ name: 'brightness', value: 60 });
+      expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommands[1].capability.value).toEqual({ r: 0, g: 255, b: 0 });
+      expect(capturedCommands[2].capability.type).toBe('devices.capabilities.range');
+      expect(capturedCommands[2].capability.value).toBe(60);
     });
 
     it('should turn on with color temperature only', async () => {
       const capturedCommands: any[] = [];
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          const command = await request.json();
-          capturedCommands.push(command);
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -348,17 +379,20 @@ describe('GoveeClient Integration Tests', () => {
       await client.turnOnWithColorTemperature('living-room-123', 'H6159', colorTemp);
 
       expect(capturedCommands).toHaveLength(2);
-      expect(capturedCommands[0].cmd).toEqual({ name: 'turn', value: 'on' });
-      expect(capturedCommands[1].cmd).toEqual({ name: 'colorTem', value: 3000 });
+      expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommands[1].capability.instance).toBe('colorTemperatureK');
+      expect(capturedCommands[1].capability.value).toBe(3000);
     });
 
     it('should turn on with color temperature and brightness', async () => {
       const capturedCommands: any[] = [];
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          const command = await request.json();
-          capturedCommands.push(command);
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -368,9 +402,13 @@ describe('GoveeClient Integration Tests', () => {
       await client.turnOnWithColorTemperature('living-room-123', 'H6159', colorTemp, brightness);
 
       expect(capturedCommands).toHaveLength(3);
-      expect(capturedCommands[0].cmd).toEqual({ name: 'turn', value: 'on' });
-      expect(capturedCommands[1].cmd).toEqual({ name: 'colorTem', value: 3000 });
-      expect(capturedCommands[2].cmd).toEqual({ name: 'brightness', value: 90 });
+      expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommands[1].capability.instance).toBe('colorTemperatureK');
+      expect(capturedCommands[1].capability.value).toBe(3000);
+      expect(capturedCommands[2].capability.type).toBe('devices.capabilities.range');
+      expect(capturedCommands[2].capability.value).toBe(90);
     });
   });
 
@@ -380,7 +418,7 @@ describe('GoveeClient Integration Tests', () => {
       const requestTimestamps: number[] = [];
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           requestCount++;
           requestTimestamps.push(Date.now());
           return HttpResponse.json(mockDevicesResponse);
@@ -402,7 +440,7 @@ describe('GoveeClient Integration Tests', () => {
   describe('error handling', () => {
     it('should propagate API errors', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(
             { code: 1001, message: 'Invalid API key' },
             { status: 401 }
@@ -415,7 +453,7 @@ describe('GoveeClient Integration Tests', () => {
 
     it('should handle network errors', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.error();
         })
       );
@@ -429,9 +467,9 @@ describe('GoveeClient Integration Tests', () => {
       const capturedCommands: any[] = [];
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          const command = await request.json();
-          capturedCommands.push(command);
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -454,18 +492,19 @@ describe('GoveeClient Integration Tests', () => {
       );
 
       expect(capturedCommands).toHaveLength(3);
-      expect(capturedCommands[0].cmd.name).toBe('turn');
-      expect(capturedCommands[1].cmd.name).toBe('colorTem');
-      expect(capturedCommands[2].cmd.name).toBe('brightness');
+      expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
+      expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommands[1].capability.instance).toBe('colorTemperatureK');
+      expect(capturedCommands[2].capability.type).toBe('devices.capabilities.range');
     });
 
     it('should handle batch operations on multiple devices', async () => {
       const capturedCommands: any[] = [];
 
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
-          const command = await request.json();
-          capturedCommands.push(command);
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -480,7 +519,7 @@ describe('GoveeClient Integration Tests', () => {
       );
 
       expect(capturedCommands).toHaveLength(2); // Two controllable devices
-      expect(capturedCommands.every(cmd => cmd.cmd.name === 'turn' && cmd.cmd.value === 'off')).toBe(true);
+      expect(capturedCommands.every(cmd => cmd.capability.type === 'devices.capabilities.on_off' && cmd.capability.value === 'off')).toBe(true);
     });
   });
 });

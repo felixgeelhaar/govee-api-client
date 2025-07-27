@@ -6,31 +6,33 @@ import { CommandFactory } from '../../src/domain/entities/Command';
 import { ColorRgb, ColorTemperature, Brightness } from '../../src/domain/value-objects';
 import { GoveeApiError, InvalidApiKeyError, RateLimitError, NetworkError } from '../../src/errors';
 
-const BASE_URL = 'https://developer-api.govee.com/v1';
+const BASE_URL = 'https://openapi.api.govee.com';
 
 const mockDevicesResponse = {
   code: 200,
   message: 'Success',
-  data: {
-    devices: [
-      {
-        deviceId: 'device123',
-        model: 'H6159',
-        deviceName: 'Living Room Light',
-        controllable: true,
-        retrievable: true,
-        supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-      },
-      {
-        deviceId: 'device456',
-        model: 'H6160',
-        deviceName: 'Bedroom Light',
-        controllable: true,
-        retrievable: false,
-        supportCmds: ['turn', 'brightness']
-      }
-    ]
-  }
+  data: [
+    {
+      device: 'device123',
+      sku: 'H6159',
+      deviceName: 'Living Room Light',
+      capabilities: [
+        { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+        { type: 'devices.capabilities.range', instance: 'brightness' },
+        { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+        { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+      ]
+    },
+    {
+      device: 'device456',
+      sku: 'H6160',
+      deviceName: 'Bedroom Light',
+      capabilities: [
+        { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+        { type: 'devices.capabilities.range', instance: 'brightness' }
+      ]
+    }
+  ]
 };
 
 const mockStateResponse = {
@@ -38,14 +40,27 @@ const mockStateResponse = {
   message: 'Success',
   data: {
     device: 'device123',
-    model: 'H6159',
-    properties: [
+    sku: 'H6159',
+    capabilities: [
       {
-        online: true,
-        powerSwitch: 1,
-        brightness: 75,
-        color: { r: 255, g: 128, b: 0 },
-        colorTem: 2700
+        type: 'devices.capabilities.on_off',
+        instance: 'powerSwitch',
+        state: { value: true }
+      },
+      {
+        type: 'devices.capabilities.range',
+        instance: 'brightness',
+        state: { value: 75 }
+      },
+      {
+        type: 'devices.capabilities.color_setting',
+        instance: 'colorRgb',
+        state: { value: { r: 255, g: 128, b: 0 } }
+      },
+      {
+        type: 'devices.capabilities.color_setting',
+        instance: 'colorTemperatureK',
+        state: { value: 2700 }
       }
     ]
   }
@@ -96,7 +111,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
   describe('findAll', () => {
     it('should successfully fetch all devices', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(mockDevicesResponse);
         })
       );
@@ -105,23 +120,23 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
       expect(devices).toHaveLength(2);
       expect(devices[0].deviceId).toBe('device123');
-      expect(devices[0].model).toBe('H6159');
+      expect(devices[0].sku).toBe('H6159');
       expect(devices[0].deviceName).toBe('Living Room Light');
       expect(devices[0].controllable).toBe(true);
       expect(devices[0].retrievable).toBe(true);
       expect(devices[0].supportedCmds).toEqual(['turn', 'brightness', 'color', 'colorTem']);
 
       expect(devices[1].deviceId).toBe('device456');
-      expect(devices[1].model).toBe('H6160');
+      expect(devices[1].sku).toBe('H6160');
       expect(devices[1].deviceName).toBe('Bedroom Light');
       expect(devices[1].controllable).toBe(true);
-      expect(devices[1].retrievable).toBe(false);
+      expect(devices[1].retrievable).toBe(true); // derived from capabilities array
       expect(devices[1].supportedCmds).toEqual(['turn', 'brightness']);
     });
 
     it('should handle API error response', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(
             { code: 1001, message: 'Invalid API key' },
             { status: 400 }
@@ -134,7 +149,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should handle 401 unauthorized response', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(
             { message: 'Invalid API key' },
             { status: 401 }
@@ -147,7 +162,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should handle 429 rate limit response', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(
             { message: 'Rate limit exceeded' },
             { 
@@ -167,7 +182,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should handle network errors', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.error();
         })
       );
@@ -179,10 +194,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
   describe('findState', () => {
     it('should successfully fetch device state', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices/state`, ({ request }) => {
-          const url = new URL(request.url);
-          expect(url.searchParams.get('device')).toBe('device123');
-          expect(url.searchParams.get('model')).toBe('H6159');
+        http.post(`${BASE_URL}/router/api/v1/device/state`, async ({ request }) => {
+          const body = await request.json() as any;
+          expect(body.payload.device).toBe('device123');
+          expect(body.payload.sku).toBe('H6159');
           return HttpResponse.json(mockStateResponse);
         })
       );
@@ -203,35 +218,36 @@ describe('GoveeDeviceRepository Integration Tests', () => {
         ...mockStateResponse,
         data: {
           ...mockStateResponse.data,
-          properties: [
+          capabilities: [
             {
-              online: false,
-              powerSwitch: 0
+              type: 'devices.capabilities.on_off',
+              instance: 'powerSwitch',
+              state: { value: false }
             }
           ]
         }
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices/state`, () => {
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
           return HttpResponse.json(offlineStateResponse);
         })
       );
 
       const state = await repository.findState('device123', 'H6159');
 
-      expect(state.online).toBe(false);
+      expect(state.online).toBe(true); // API assumes online if response received
       expect(state.getPowerState()).toBe('off');
     });
 
     it('should validate device parameters', async () => {
       await expect(repository.findState('', 'H6159')).rejects.toThrow('Device ID must be a non-empty string');
-      await expect(repository.findState('device123', '')).rejects.toThrow('Model must be a non-empty string');
+      await expect(repository.findState('device123', '')).rejects.toThrow('SKU must be a non-empty string');
     });
 
     it('should handle API error response', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices/state`, () => {
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
           return HttpResponse.json(
             { code: 1002, message: 'Device not found' },
             { status: 404 }
@@ -246,11 +262,12 @@ describe('GoveeDeviceRepository Integration Tests', () => {
   describe('sendCommand', () => {
     it('should successfully send power on command', async () => {
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
           const body = await request.json() as any;
-          expect(body.device).toBe('device123');
-          expect(body.model).toBe('H6159');
-          expect(body.cmd).toEqual({ name: 'turn', value: 'on' });
+          expect(body.payload.device).toBe('device123');
+          expect(body.payload.sku).toBe('H6159');
+          expect(body.payload.capability.type).toBe('devices.capabilities.on_off');
+          expect(body.payload.capability.value).toBe('on');
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -261,11 +278,12 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should successfully send brightness command', async () => {
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
           const body = await request.json() as any;
-          expect(body.device).toBe('device123');
-          expect(body.model).toBe('H6159');
-          expect(body.cmd).toEqual({ name: 'brightness', value: 75 });
+          expect(body.payload.device).toBe('device123');
+          expect(body.payload.sku).toBe('H6159');
+          expect(body.payload.capability.type).toBe('devices.capabilities.range');
+          expect(body.payload.capability.value).toBe(75);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -276,11 +294,12 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should successfully send color command', async () => {
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
           const body = await request.json() as any;
-          expect(body.device).toBe('device123');
-          expect(body.model).toBe('H6159');
-          expect(body.cmd).toEqual({ name: 'color', value: { r: 255, g: 128, b: 0 } });
+          expect(body.payload.device).toBe('device123');
+          expect(body.payload.sku).toBe('H6159');
+          expect(body.payload.capability.type).toBe('devices.capabilities.color_setting');
+          expect(body.payload.capability.value).toEqual({ r: 255, g: 128, b: 0 });
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -291,11 +310,13 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should successfully send color temperature command', async () => {
       server.use(
-        http.put(`${BASE_URL}/devices/control`, async ({ request }) => {
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
           const body = await request.json() as any;
-          expect(body.device).toBe('device123');
-          expect(body.model).toBe('H6159');
-          expect(body.cmd).toEqual({ name: 'colorTem', value: 2700 });
+          expect(body.payload.device).toBe('device123');
+          expect(body.payload.sku).toBe('H6159');
+          expect(body.payload.capability.type).toBe('devices.capabilities.color_setting');
+          expect(body.payload.capability.instance).toBe('colorTemperatureK');
+          expect(body.payload.capability.value).toBe(2700);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -308,12 +329,12 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const command = CommandFactory.powerOn();
       
       await expect(repository.sendCommand('', 'H6159', command)).rejects.toThrow('Device ID must be a non-empty string');
-      await expect(repository.sendCommand('device123', '', command)).rejects.toThrow('Model must be a non-empty string');
+      await expect(repository.sendCommand('device123', '', command)).rejects.toThrow('SKU must be a non-empty string');
     });
 
     it('should handle device offline error', async () => {
       server.use(
-        http.put(`${BASE_URL}/devices/control`, () => {
+        http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
           return HttpResponse.json(
             { code: 1003, message: 'Device is offline' },
             { status: 400 }
@@ -330,7 +351,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should handle unsupported command error', async () => {
       server.use(
-        http.put(`${BASE_URL}/devices/control`, () => {
+        http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
           return HttpResponse.json(
             { code: 1004, message: 'Command not support' },
             { status: 400 }
@@ -347,7 +368,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should handle server errors', async () => {
       server.use(
-        http.put(`${BASE_URL}/devices/control`, () => {
+        http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
           return HttpResponse.json(
             { message: 'Internal server error' },
             { status: 500 }
@@ -363,7 +384,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
   describe('request headers and authentication', () => {
     it('should send correct headers with requests', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, ({ request }) => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, ({ request }) => {
           expect(request.headers.get('Govee-API-Key')).toBe('test-api-key');
           expect(request.headers.get('Content-Type')).toBe('application/json');
           return HttpResponse.json(mockDevicesResponse);
@@ -377,7 +398,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       // This would typically be tested with a logger mock, but for simplicity
       // we'll just verify the request is made with the correct API key
       server.use(
-        http.get(`${BASE_URL}/devices`, ({ request }) => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, ({ request }) => {
           expect(request.headers.get('Govee-API-Key')).toBe('test-api-key');
           return HttpResponse.json(mockDevicesResponse);
         })
@@ -390,7 +411,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
   describe('error handling edge cases', () => {
     it('should handle malformed JSON response', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return new HttpResponse('invalid json', {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
@@ -403,7 +424,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should handle empty response body', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return new HttpResponse('', { status: 500 });
         })
       );
@@ -413,7 +434,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should handle non-200 success codes from API', async () => {
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(
             { ...mockDevicesResponse, code: 201 },
             { status: 200 }
@@ -428,38 +449,41 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const responseWithInvalidDeviceId = {
         code: 200,
         message: 'Success',
-        data: {
-          devices: [
-            {
-              deviceId: 'device123',
-              model: 'H6159',
-              deviceName: 'Living Room Light',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-            },
-            {
-              deviceId: '',
-              model: 'H6160',
-              deviceName: 'Invalid Device',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', 'brightness']
-            },
-            {
-              deviceId: 'device789',
-              model: 'H6161',
-              deviceName: 'Kitchen Light',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness']
-            }
-          ]
-        }
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6159',
+            deviceName: 'Living Room Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+            ]
+          },
+          {
+            device: '',
+            sku: 'H6160',
+            deviceName: 'Invalid Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          },
+          {
+            device: 'device789',
+            sku: 'H6161',
+            deviceName: 'Kitchen Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          }
+        ]
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(responseWithInvalidDeviceId);
         })
       );
@@ -475,38 +499,41 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const responseWithNullDeviceId = {
         code: 200,
         message: 'Success',
-        data: {
-          devices: [
-            {
-              deviceId: 'device123',
-              model: 'H6159',
-              deviceName: 'Living Room Light',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-            },
-            {
-              deviceId: null,
-              model: 'H6160',
-              deviceName: 'Invalid Device',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', 'brightness']
-            },
-            {
-              // deviceId missing entirely
-              model: 'H6161',
-              deviceName: 'Another Invalid Device',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness']
-            }
-          ]
-        }
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6159',
+            deviceName: 'Living Room Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+            ]
+          },
+          {
+            device: null,
+            sku: 'H6160',
+            deviceName: 'Invalid Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          },
+          {
+            // device missing entirely
+            sku: 'H6161',
+            deviceName: 'Another Invalid Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          }
+        ]
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(responseWithNullDeviceId);
         })
       );
@@ -521,38 +548,41 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const responseWithWhitespaceDeviceId = {
         code: 200,
         message: 'Success',
-        data: {
-          devices: [
-            {
-              deviceId: 'device123',
-              model: 'H6159',
-              deviceName: 'Living Room Light',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-            },
-            {
-              deviceId: '   ',
-              model: 'H6160',
-              deviceName: 'Invalid Device',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', 'brightness']
-            },
-            {
-              deviceId: '\t\n',
-              model: 'H6161',
-              deviceName: 'Another Invalid Device',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness']
-            }
-          ]
-        }
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6159',
+            deviceName: 'Living Room Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+            ]
+          },
+          {
+            device: '   ',
+            sku: 'H6160',
+            deviceName: 'Invalid Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          },
+          {
+            device: '\t\n',
+            sku: 'H6161',
+            deviceName: 'Another Invalid Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          }
+        ]
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(responseWithWhitespaceDeviceId);
         })
       );
@@ -567,30 +597,32 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const responseWithInvalidModel = {
         code: 200,
         message: 'Success',
-        data: {
-          devices: [
-            {
-              deviceId: 'device123',
-              model: 'H6159',
-              deviceName: 'Living Room Light',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-            },
-            {
-              deviceId: 'device456',
-              model: '',
-              deviceName: 'Invalid Model Device',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', 'brightness']
-            }
-          ]
-        }
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6159',
+            deviceName: 'Living Room Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+            ]
+          },
+          {
+            device: 'device456',
+            sku: '',
+            deviceName: 'Invalid Model Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          }
+        ]
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(responseWithInvalidModel);
         })
       );
@@ -605,30 +637,32 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const responseWithInvalidDeviceName = {
         code: 200,
         message: 'Success',
-        data: {
-          devices: [
-            {
-              deviceId: 'device123',
-              model: 'H6159',
-              deviceName: 'Living Room Light',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-            },
-            {
-              deviceId: 'device456',
-              model: 'H6160',
-              deviceName: '',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', 'brightness']
-            }
-          ]
-        }
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6159',
+            deviceName: 'Living Room Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+            ]
+          },
+          {
+            device: 'device456',
+            sku: 'H6160',
+            deviceName: '',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          }
+        ]
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(responseWithInvalidDeviceName);
         })
       );
@@ -643,38 +677,39 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const responseWithInvalidSupportCmds = {
         code: 200,
         message: 'Success',
-        data: {
-          devices: [
-            {
-              deviceId: 'device123',
-              model: 'H6159',
-              deviceName: 'Living Room Light',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness', 'color', 'colorTem']
-            },
-            {
-              deviceId: 'device456',
-              model: 'H6160',
-              deviceName: 'Invalid Commands Device',
-              controllable: true,
-              retrievable: false,
-              supportCmds: null
-            },
-            {
-              deviceId: 'device789',
-              model: 'H6161',
-              deviceName: 'Empty Commands Device',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', '', 'brightness']
-            }
-          ]
-        }
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6159',
+            deviceName: 'Living Room Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
+            ]
+          },
+          {
+            device: 'device456',
+            sku: 'H6160',
+            deviceName: 'Invalid Commands Device',
+            capabilities: null
+          },
+          {
+            device: 'device789',
+            sku: 'H6161',
+            deviceName: 'Empty Commands Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: '', instance: 'invalid' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          }
+        ]
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(responseWithInvalidSupportCmds);
         })
       );
@@ -689,38 +724,39 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       const responseWithAllInvalidDevices = {
         code: 200,
         message: 'Success',
-        data: {
-          devices: [
-            {
-              deviceId: '',
-              model: 'H6159',
-              deviceName: 'Invalid Device 1',
-              controllable: true,
-              retrievable: true,
-              supportCmds: ['turn', 'brightness']
-            },
-            {
-              deviceId: 'device456',
-              model: '',
-              deviceName: 'Invalid Device 2',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', 'brightness']
-            },
-            {
-              deviceId: 'device789',
-              model: 'H6161',
-              deviceName: '',
-              controllable: true,
-              retrievable: false,
-              supportCmds: ['turn', 'brightness']
-            }
-          ]
-        }
+        data: [
+          {
+            device: '',
+            sku: 'H6159',
+            deviceName: 'Invalid Device 1',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          },
+          {
+            device: 'device456',
+            sku: '',
+            deviceName: 'Invalid Device 2',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          },
+          {
+            device: 'device789',
+            sku: 'H6161',
+            deviceName: '',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' }
+            ]
+          }
+        ]
       };
 
       server.use(
-        http.get(`${BASE_URL}/devices`, () => {
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(responseWithAllInvalidDevices);
         })
       );

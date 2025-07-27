@@ -19,21 +19,29 @@ interface GoveeApiConfig {
   logger?: Logger;
 }
 
+interface GoveeCapability {
+  type: string;
+  instance: string;
+  parameters?: {
+    dataType: string;
+    options?: Array<{
+      name: string;
+      value: unknown;
+    }>;
+  };
+}
+
 interface GoveeDeviceResponse {
-  deviceId: string;
-  model: string;
+  device: string;
+  sku: string;
   deviceName: string;
-  controllable: boolean;
-  retrievable: boolean;
-  supportCmds: string[];
+  capabilities: GoveeCapability[];
 }
 
 interface GoveeDevicesResponse {
   code: number;
   message: string;
-  data: {
-    devices: GoveeDeviceResponse[];
-  };
+  data: GoveeDeviceResponse[];
 }
 
 interface GoveeStateProperty {
@@ -44,22 +52,40 @@ interface GoveeStateProperty {
   colorTem?: number;
 }
 
+interface GoveeStateRequest {
+  requestId: string;
+  payload: {
+    sku: string;
+    device: string;
+  };
+}
+
 interface GoveeStateResponse {
   code: number;
   message: string;
   data: {
     device: string;
-    model: string;
-    properties: GoveeStateProperty[];
+    sku: string;
+    capabilities: Array<{
+      type: string;
+      instance: string;
+      state: {
+        value: unknown;
+      };
+    }>;
   };
 }
 
 interface GoveeCommandRequest {
-  device: string;
-  model: string;
-  cmd: {
-    name: string;
-    value: unknown;
+  requestId: string;
+  payload: {
+    sku: string;
+    device: string;
+    capability: {
+      type: string;
+      instance: string;
+      value: unknown;
+    };
   };
 }
 
@@ -72,7 +98,11 @@ interface GoveeCommandResponse {
 export class GoveeDeviceRepository implements IGoveeDeviceRepository {
   private readonly httpClient: AxiosInstance;
   private readonly logger: Logger | undefined;
-  private static readonly BASE_URL = 'https://developer-api.govee.com/v1';
+  private static readonly BASE_URL = 'https://openapi.api.govee.com';
+
+  private generateRequestId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
 
   constructor(config: GoveeApiConfig) {
     this.validateConfig(config);
@@ -177,7 +207,9 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     this.logger?.info('Fetching all devices');
 
     try {
-      const response = await this.httpClient.get<GoveeDevicesResponse>('/devices');
+      const response = await this.httpClient.get<GoveeDevicesResponse>(
+        '/router/api/v1/user/devices'
+      );
       const apiResponse = response.data;
 
       if (apiResponse.code !== 200) {
@@ -189,27 +221,23 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         );
       }
 
-      const devices = apiResponse.data.devices
+      const devices = apiResponse.data
         .filter(device => {
           if (
-            !device.deviceId ||
-            typeof device.deviceId !== 'string' ||
-            device.deviceId.trim().length === 0
+            !device.device ||
+            typeof device.device !== 'string' ||
+            device.device.trim().length === 0
           ) {
             this.logger?.warn(
-              { device: { ...device, deviceId: '[INVALID]' } },
+              { device: { ...device, device: '[INVALID]' } },
               'Filtering out device with invalid device ID'
             );
             return false;
           }
-          if (
-            !device.model ||
-            typeof device.model !== 'string' ||
-            device.model.trim().length === 0
-          ) {
+          if (!device.sku || typeof device.sku !== 'string' || device.sku.trim().length === 0) {
             this.logger?.warn(
-              { device: { ...device, model: '[INVALID]' } },
-              'Filtering out device with invalid model'
+              { device: { ...device, sku: '[INVALID]' } },
+              'Filtering out device with invalid sku'
             );
             return false;
           }
@@ -224,18 +252,22 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
             );
             return false;
           }
-          if (!Array.isArray(device.supportCmds)) {
+          if (!Array.isArray(device.capabilities)) {
             this.logger?.warn(
-              { device: { ...device, supportCmds: '[INVALID]' } },
-              'Filtering out device with invalid supported commands'
+              { device: { ...device, capabilities: '[INVALID]' } },
+              'Filtering out device with invalid capabilities'
             );
             return false;
           }
-          for (const cmd of device.supportCmds) {
-            if (typeof cmd !== 'string' || cmd.trim().length === 0) {
+          for (const capability of device.capabilities) {
+            if (
+              !capability.type ||
+              typeof capability.type !== 'string' ||
+              capability.type.trim().length === 0
+            ) {
               this.logger?.warn(
-                { device: { ...device, supportCmds: '[INVALID]' } },
-                'Filtering out device with invalid supported command'
+                { device: { ...device, capabilities: '[INVALID]' } },
+                'Filtering out device with invalid capability type'
               );
               return false;
             }
@@ -244,17 +276,10 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         })
         .map(
           device =>
-            new GoveeDevice(
-              device.deviceId,
-              device.model,
-              device.deviceName,
-              device.controllable,
-              device.retrievable,
-              device.supportCmds
-            )
+            new GoveeDevice(device.device, device.sku, device.deviceName, device.capabilities)
         );
 
-      const totalDevicesFromApi = apiResponse.data.devices.length;
+      const totalDevicesFromApi = apiResponse.data.length;
       const validDevices = devices.length;
       const filteredDevices = totalDevicesFromApi - validDevices;
 
@@ -273,59 +298,21 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
   }
 
-  async findState(deviceId: string, model: string): Promise<DeviceState> {
-    this.validateDeviceParams(deviceId, model);
-    this.logger?.info({ deviceId, model }, 'Fetching device state');
+  async findState(deviceId: string, sku: string): Promise<DeviceState> {
+    this.validateDeviceParams(deviceId, sku);
+    this.logger?.info({ deviceId, sku }, 'Fetching device state');
 
     try {
-      const response = await this.httpClient.get<GoveeStateResponse>(
-        `/devices/state?device=${encodeURIComponent(deviceId)}&model=${encodeURIComponent(model)}`
-      );
-      const apiResponse = response.data;
+      const requestBody: GoveeStateRequest = {
+        requestId: this.generateRequestId(),
+        payload: {
+          sku: sku,
+          device: deviceId,
+        },
+      };
 
-      if (apiResponse.code !== 200) {
-        throw new GoveeApiError(
-          `API returned error code ${apiResponse.code}: ${apiResponse.message}`,
-          response.status,
-          apiResponse.code,
-          apiResponse.message
-        );
-      }
-
-      const properties = this.parseStateProperties(apiResponse.data.properties);
-      const online = properties.online ?? true;
-
-      const deviceState = new DeviceState(
-        deviceId,
-        model,
-        online,
-        this.mapToStateProperties(properties)
-      );
-
-      this.logger?.info({ deviceId, model, online }, 'Successfully fetched device state');
-      return deviceState;
-    } catch (error) {
-      this.logger?.error(error, 'Failed to fetch device state');
-      throw error;
-    }
-  }
-
-  async sendCommand(deviceId: string, model: string, command: Command): Promise<void> {
-    this.validateDeviceParams(deviceId, model);
-    this.logger?.info(
-      { deviceId, model, command: command.toObject() },
-      'Sending command to device'
-    );
-
-    const requestBody: GoveeCommandRequest = {
-      device: deviceId,
-      model: model,
-      cmd: command.toObject(),
-    };
-
-    try {
-      const response = await this.httpClient.put<GoveeCommandResponse>(
-        '/devices/control',
+      const response = await this.httpClient.post<GoveeStateResponse>(
+        '/router/api/v1/device/state',
         requestBody
       );
       const apiResponse = response.data;
@@ -339,54 +326,115 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         );
       }
 
-      this.logger?.info({ deviceId, model }, 'Successfully sent command to device');
+      // Parse capabilities into state properties
+      const stateProperties = this.mapCapabilitiesToStateProperties(apiResponse.data.capabilities);
+
+      const deviceState = new DeviceState(
+        deviceId,
+        sku,
+        true, // Assume online if we get a response
+        stateProperties
+      );
+
+      this.logger?.info({ deviceId, sku }, 'Successfully fetched device state');
+      return deviceState;
+    } catch (error) {
+      this.logger?.error(error, 'Failed to fetch device state');
+      throw error;
+    }
+  }
+
+  async sendCommand(deviceId: string, sku: string, command: Command): Promise<void> {
+    this.validateDeviceParams(deviceId, sku);
+    this.logger?.info({ deviceId, sku, command: command.toObject() }, 'Sending command to device');
+
+    const requestBody: GoveeCommandRequest = {
+      requestId: this.generateRequestId(),
+      payload: {
+        sku: sku,
+        device: deviceId,
+        capability: this.convertCommandToCapability(command),
+      },
+    };
+
+    try {
+      const response = await this.httpClient.post<GoveeCommandResponse>(
+        '/router/api/v1/device/control',
+        requestBody
+      );
+      const apiResponse = response.data;
+
+      if (apiResponse.code !== 200) {
+        throw new GoveeApiError(
+          `API returned error code ${apiResponse.code}: ${apiResponse.message}`,
+          response.status,
+          apiResponse.code,
+          apiResponse.message
+        );
+      }
+
+      this.logger?.info({ deviceId, sku }, 'Successfully sent command to device');
     } catch (error) {
       this.logger?.error(error, 'Failed to send command to device');
       throw error;
     }
   }
 
-  private validateDeviceParams(deviceId: string, model: string): void {
+  private validateDeviceParams(deviceId: string, sku: string): void {
     if (!deviceId || typeof deviceId !== 'string' || deviceId.trim().length === 0) {
       throw new Error('Device ID must be a non-empty string');
     }
-    if (!model || typeof model !== 'string' || model.trim().length === 0) {
-      throw new Error('Model must be a non-empty string');
+    if (!sku || typeof sku !== 'string' || sku.trim().length === 0) {
+      throw new Error('SKU must be a non-empty string');
     }
   }
 
-  private parseStateProperties(properties: GoveeStateProperty[]): GoveeStateProperty {
-    // Govee API returns an array of property objects, but typically contains a single object
-    // with all the device properties
-    return properties.reduce((acc, prop) => ({ ...acc, ...prop }), {} as GoveeStateProperty);
+  private convertCommandToCapability(command: Command): {
+    type: string;
+    instance: string;
+    value: unknown;
+  } {
+    const cmdObj = command.toObject();
+
+    // Map command names to capability types
+    const capabilityTypeMap: Record<string, string> = {
+      turn: 'devices.capabilities.on_off',
+      brightness: 'devices.capabilities.range',
+      color: 'devices.capabilities.color_setting',
+      colorTem: 'devices.capabilities.color_setting',
+    };
+
+    return {
+      type: capabilityTypeMap[cmdObj.name] || `devices.capabilities.${cmdObj.name}`,
+      instance: cmdObj.name === 'colorTem' ? 'colorTemperatureK' : cmdObj.name,
+      value: cmdObj.value,
+    };
   }
 
-  private mapToStateProperties(
-    properties: GoveeStateProperty
+  private mapCapabilitiesToStateProperties(
+    capabilities: Array<{ type: string; instance: string; state: { value: unknown } }>
   ): Record<string, PowerState | ColorState | ColorTemperatureState | BrightnessState> {
     const result: Record<
       string,
       PowerState | ColorState | ColorTemperatureState | BrightnessState
     > = {};
 
-    // Map power state
-    if (typeof properties.powerSwitch === 'number') {
-      result.powerSwitch = { value: properties.powerSwitch === 1 ? 'on' : 'off' };
-    }
-
-    // Map brightness
-    if (typeof properties.brightness === 'number') {
-      result.brightness = { value: new Brightness(properties.brightness) };
-    }
-
-    // Map color
-    if (properties.color && typeof properties.color === 'object') {
-      result.color = { value: ColorRgb.fromObject(properties.color) };
-    }
-
-    // Map color temperature
-    if (typeof properties.colorTem === 'number') {
-      result.colorTem = { value: new ColorTemperature(properties.colorTem) };
+    for (const capability of capabilities) {
+      if (capability.type.includes('on_off')) {
+        result.powerSwitch = { value: capability.state.value ? 'on' : 'off' };
+      } else if (capability.type.includes('range') && capability.instance === 'brightness') {
+        result.brightness = { value: new Brightness(capability.state.value as number) };
+      } else if (capability.type.includes('color_setting')) {
+        if (capability.instance === 'colorRgb') {
+          result.color = {
+            value: ColorRgb.fromObject(
+              capability.state.value as { r: number; g: number; b: number }
+            ),
+          };
+        } else if (capability.instance === 'colorTemperatureK') {
+          result.colorTem = { value: new ColorTemperature(capability.state.value as number) };
+        }
+      }
     }
 
     return result;

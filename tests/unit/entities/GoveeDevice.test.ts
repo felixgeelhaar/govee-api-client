@@ -2,42 +2,43 @@ import { describe, it, expect } from 'vitest';
 import { GoveeDevice } from '../../../src/domain/entities/GoveeDevice';
 
 describe('GoveeDevice', () => {
+  const validCapabilities = [
+    { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+    { type: 'devices.capabilities.range', instance: 'brightness' },
+    { type: 'devices.capabilities.color_setting', instance: 'colorRgb' }
+  ];
+
   const validProps = {
     deviceId: 'device123',
-    model: 'H6159',
+    sku: 'H6159',
     deviceName: 'Living Room Light',
-    controllable: true,
-    retrievable: true,
-    supportedCmds: ['turn', 'brightness', 'color']
+    capabilities: validCapabilities
   };
 
   describe('constructor', () => {
     it('should create valid GoveeDevice with valid properties', () => {
       const device = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       expect(device.deviceId).toBe(validProps.deviceId);
-      expect(device.model).toBe(validProps.model);
+      expect(device.sku).toBe(validProps.sku);
+      expect(device.model).toBe(validProps.sku); // model getter returns sku for compatibility
       expect(device.deviceName).toBe(validProps.deviceName);
-      expect(device.controllable).toBe(validProps.controllable);
-      expect(device.retrievable).toBe(validProps.retrievable);
-      expect(device.supportedCmds).toEqual(validProps.supportedCmds);
+      expect(device.controllable).toBe(true); // derived from capabilities
+      expect(device.retrievable).toBe(true); // derived from capabilities
+      expect(device.supportedCmds).toEqual(['turn', 'brightness', 'color']); // derived from capabilities
     });
 
     it('should create immutable supported commands array', () => {
       const device = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       const commands = device.supportedCmds as string[];
@@ -45,74 +46,82 @@ describe('GoveeDevice', () => {
     });
 
     it('should throw error for empty device ID', () => {
-      expect(() => new GoveeDevice('', validProps.model, validProps.deviceName, validProps.controllable, validProps.retrievable, validProps.supportedCmds))
+      expect(() => new GoveeDevice('', validProps.sku, validProps.deviceName, validProps.capabilities))
         .toThrow('Device ID must be a non-empty string');
     });
 
     it('should throw error for whitespace-only device ID', () => {
-      expect(() => new GoveeDevice('   ', validProps.model, validProps.deviceName, validProps.controllable, validProps.retrievable, validProps.supportedCmds))
+      expect(() => new GoveeDevice('   ', validProps.sku, validProps.deviceName, validProps.capabilities))
         .toThrow('Device ID must be a non-empty string');
     });
 
-    it('should throw error for empty model', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, '', validProps.deviceName, validProps.controllable, validProps.retrievable, validProps.supportedCmds))
-        .toThrow('Model must be a non-empty string');
+    it('should throw error for empty sku', () => {
+      expect(() => new GoveeDevice(validProps.deviceId, '', validProps.deviceName, validProps.capabilities))
+        .toThrow('SKU must be a non-empty string');
     });
 
-    it('should throw error for whitespace-only model', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, '   ', validProps.deviceName, validProps.controllable, validProps.retrievable, validProps.supportedCmds))
-        .toThrow('Model must be a non-empty string');
+    it('should throw error for whitespace-only sku', () => {
+      expect(() => new GoveeDevice(validProps.deviceId, '   ', validProps.deviceName, validProps.capabilities))
+        .toThrow('SKU must be a non-empty string');
     });
 
     it('should throw error for empty device name', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, validProps.model, '', validProps.controllable, validProps.retrievable, validProps.supportedCmds))
+      expect(() => new GoveeDevice(validProps.deviceId, validProps.sku, '', validProps.capabilities))
         .toThrow('Device name must be a non-empty string');
     });
 
     it('should throw error for whitespace-only device name', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, validProps.model, '   ', validProps.controllable, validProps.retrievable, validProps.supportedCmds))
+      expect(() => new GoveeDevice(validProps.deviceId, validProps.sku, '   ', validProps.capabilities))
         .toThrow('Device name must be a non-empty string');
     });
 
-    it('should throw error for non-array supported commands', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, validProps.model, validProps.deviceName, validProps.controllable, validProps.retrievable, 'invalid' as any))
-        .toThrow('Supported commands must be an array');
+    it('should throw error for non-array capabilities', () => {
+      expect(() => new GoveeDevice(validProps.deviceId, validProps.sku, validProps.deviceName, 'invalid' as any))
+        .toThrow('Capabilities must be an array');
     });
 
-    it('should throw error for empty command in supported commands', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, validProps.model, validProps.deviceName, validProps.controllable, validProps.retrievable, ['turn', '', 'color']))
-        .toThrow('All supported commands must be non-empty strings');
+    it('should throw error for capability with empty type', () => {
+      const invalidCapabilities = [
+        { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+        { type: '', instance: 'brightness' }
+      ];
+      expect(() => new GoveeDevice(validProps.deviceId, validProps.sku, validProps.deviceName, invalidCapabilities))
+        .toThrow('All capabilities must have non-empty type strings');
     });
 
-    it('should throw error for whitespace-only command in supported commands', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, validProps.model, validProps.deviceName, validProps.controllable, validProps.retrievable, ['turn', '   ', 'color']))
-        .toThrow('All supported commands must be non-empty strings');
+    it('should throw error for capability with whitespace-only type', () => {
+      const invalidCapabilities = [
+        { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+        { type: '   ', instance: 'brightness' }
+      ];
+      expect(() => new GoveeDevice(validProps.deviceId, validProps.sku, validProps.deviceName, invalidCapabilities))
+        .toThrow('All capabilities must have non-empty type strings');
     });
 
-    it('should throw error for non-string command in supported commands', () => {
-      expect(() => new GoveeDevice(validProps.deviceId, validProps.model, validProps.deviceName, validProps.controllable, validProps.retrievable, ['turn', 123, 'color'] as any))
-        .toThrow('All supported commands must be non-empty strings');
+    it('should throw error for capability with non-string type', () => {
+      const invalidCapabilities = [
+        { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+        { type: 123, instance: 'brightness' }
+      ] as any;
+      expect(() => new GoveeDevice(validProps.deviceId, validProps.sku, validProps.deviceName, invalidCapabilities))
+        .toThrow('All capabilities must have non-empty type strings');
     });
   });
 
   describe('equals', () => {
-    it('should return true for devices with same deviceId and model', () => {
+    it('should return true for devices with same deviceId and sku', () => {
       const device1 = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       const device2 = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         'Different Name',
-        false,
-        false,
-        ['different', 'commands']
+        [{ type: 'devices.capabilities.on_off', instance: 'powerSwitch' }]
       );
 
       expect(device1.equals(device2)).toBe(true);
@@ -121,42 +130,34 @@ describe('GoveeDevice', () => {
     it('should return false for devices with different deviceId', () => {
       const device1 = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       const device2 = new GoveeDevice(
         'different123',
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       expect(device1.equals(device2)).toBe(false);
     });
 
-    it('should return false for devices with different model', () => {
+    it('should return false for devices with different sku', () => {
       const device1 = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       const device2 = new GoveeDevice(
         validProps.deviceId,
         'H6160',
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       expect(device1.equals(device2)).toBe(false);
@@ -167,11 +168,9 @@ describe('GoveeDevice', () => {
     it('should return correct string representation', () => {
       const device = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       expect(device.toString()).toBe('GoveeDevice(device123, H6159, "Living Room Light")');
@@ -184,11 +183,9 @@ describe('GoveeDevice', () => {
     beforeEach(() => {
       device = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
     });
 
@@ -208,26 +205,27 @@ describe('GoveeDevice', () => {
     });
 
     it('should handle non-controllable device', () => {
+      // Device with no control capabilities
+      const nonControlCapabilities = [
+        { type: 'devices.capabilities.status', instance: 'status' }
+      ];
       const nonControllable = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        false,
-        validProps.retrievable,
-        validProps.supportedCmds
+        nonControlCapabilities
       );
 
       expect(nonControllable.canControl()).toBe(false);
     });
 
     it('should handle non-retrievable device', () => {
+      // Device with no capabilities (empty array means not retrievable)
       const nonRetrievable = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        false,
-        validProps.supportedCmds
+        []
       );
 
       expect(nonRetrievable.canRetrieve()).toBe(false);
@@ -238,51 +236,49 @@ describe('GoveeDevice', () => {
     it('should convert to object correctly', () => {
       const device = new GoveeDevice(
         validProps.deviceId,
-        validProps.model,
+        validProps.sku,
         validProps.deviceName,
-        validProps.controllable,
-        validProps.retrievable,
-        validProps.supportedCmds
+        validProps.capabilities
       );
 
       const obj = device.toObject();
       expect(obj).toEqual({
         deviceId: validProps.deviceId,
-        model: validProps.model,
+        model: validProps.sku, // model field returns sku for compatibility
         deviceName: validProps.deviceName,
-        controllable: validProps.controllable,
-        retrievable: validProps.retrievable,
-        supportedCmds: validProps.supportedCmds
+        controllable: true, // derived from capabilities
+        retrievable: true, // derived from capabilities
+        supportedCmds: ['turn', 'brightness', 'color'] // derived from capabilities
       });
     });
 
     it('should create device from object correctly', () => {
       const device = GoveeDevice.fromObject({
         deviceId: validProps.deviceId,
-        model: validProps.model,
+        model: validProps.sku,
         deviceName: validProps.deviceName,
-        controllable: validProps.controllable,
-        retrievable: validProps.retrievable,
-        supportedCmds: validProps.supportedCmds
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'brightness', 'color']
       });
 
       expect(device.deviceId).toBe(validProps.deviceId);
-      expect(device.model).toBe(validProps.model);
+      expect(device.sku).toBe(validProps.sku);
       expect(device.deviceName).toBe(validProps.deviceName);
-      expect(device.controllable).toBe(validProps.controllable);
-      expect(device.retrievable).toBe(validProps.retrievable);
-      expect(device.supportedCmds).toEqual(validProps.supportedCmds);
+      expect(device.controllable).toBe(true);
+      expect(device.retrievable).toBe(true);
+      expect(device.supportedCmds).toEqual(['turn', 'brightness', 'color']);
     });
 
     it('should create immutable arrays when converting from object', () => {
-      const originalSupportedCmds = [...validProps.supportedCmds];
+      const originalSupportedCmds = ['turn', 'brightness', 'color'];
       const obj = {
         deviceId: validProps.deviceId,
-        model: validProps.model,
+        model: validProps.sku,
         deviceName: validProps.deviceName,
-        controllable: validProps.controllable,
-        retrievable: validProps.retrievable,
-        supportedCmds: [...validProps.supportedCmds]  // Create a copy
+        controllable: true,
+        retrievable: true,
+        supportedCmds: [...originalSupportedCmds]  // Create a copy
       };
 
       const device = GoveeDevice.fromObject(obj);
