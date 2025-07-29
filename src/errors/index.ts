@@ -3,3 +3,4 @@ export { GoveeApiError } from './GoveeApiError';
 export { InvalidApiKeyError } from './InvalidApiKeyError';
 export { RateLimitError } from './RateLimitError';
 export { NetworkError } from './NetworkError';
+export { ValidationError } from './ValidationError';
