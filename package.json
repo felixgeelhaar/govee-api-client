@@ -2,6 +2,7 @@
   "name": "@felixgeelhaar/govee-api-client",
   "version": "2.0.0",
   "description": "Enterprise-grade TypeScript client library for the Govee Developer REST API",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
