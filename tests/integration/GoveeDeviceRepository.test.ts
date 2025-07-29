@@ -198,6 +198,13 @@ describe('GoveeDeviceRepository Integration Tests', () => {
           const body = await request.json() as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
+          
+          // Validate requestId is a valid UUID v4
+          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          expect(body.requestId).toMatch(uuidV4Regex);
+          expect(typeof body.requestId).toBe('string');
+          expect(body.requestId).toHaveLength(36);
+          
           return HttpResponse.json(mockStateResponse);
         })
       );
@@ -268,6 +275,13 @@ describe('GoveeDeviceRepository Integration Tests', () => {
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.on_off');
           expect(body.payload.capability.value).toBe('on');
+          
+          // Validate requestId is a valid UUID v4
+          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          expect(body.requestId).toMatch(uuidV4Regex);
+          expect(typeof body.requestId).toBe('string');
+          expect(body.requestId).toHaveLength(36);
+          
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -284,6 +298,11 @@ describe('GoveeDeviceRepository Integration Tests', () => {
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.range');
           expect(body.payload.capability.value).toBe(75);
+          
+          // Validate requestId is a valid UUID v4
+          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          expect(body.requestId).toMatch(uuidV4Regex);
+          
           return HttpResponse.json(mockCommandResponse);
         })
       );
