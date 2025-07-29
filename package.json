@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist/"
+    "dist/",
+    "docs/"
   ],
   "scripts": {
     "build": "tsc",
@@ -17,7 +18,8 @@
     "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
-    "prepublishOnly": "npm run build",
+    "docs:validate": "echo 'Validating documentation files...' && test -f docs/LLM_API_REFERENCE.md && test -f docs/EXAMPLES.md && test -f docs/TYPE_DEFINITIONS.md && echo 'Documentation validation complete'",
+    "prepublishOnly": "npm run build && npm run docs:validate",
     "prepare": "husky install"
   },
   "keywords": [
@@ -26,7 +28,11 @@
     "client",
     "typescript",
     "smart-devices",
-    "lighting"
+    "lighting",
+    "llm-friendly",
+    "documentation",
+    "ddd",
+    "enterprise"
   ],
   "author": "Felix Geelhaar <felix@geelhaar.com>",
   "license": "MIT",
