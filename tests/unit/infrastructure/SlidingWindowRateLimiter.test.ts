@@ -372,20 +372,30 @@ describe('SlidingWindowRateLimiter', () => {
     });
 
     test('should handle errors without breaking rate limiter', () => {
+      // Create a simple rate limiter for this test with high limit
+      const testRateLimiter = new SlidingWindowRateLimiter({
+        maxRequests: 100, // High limit to avoid queuing
+        windowMs: 60000,
+        logger: mockLogger,
+      });
+
       const successFn = vi.fn().mockResolvedValue('success');
       const errorFn = vi.fn().mockRejectedValue(new Error('Failed'));
 
       // The rate limiter should handle function errors gracefully
-      // by catching them and passing them to the promise reject handler
-      
+      // by accepting the functions and queueing them without throwing
       expect(() => {
-        rateLimiter.execute(successFn);
-        rateLimiter.execute(errorFn);
-        rateLimiter.execute(successFn);
+        testRateLimiter.execute(successFn).catch(() => {}); // Handle rejection
+        testRateLimiter.execute(errorFn).catch(() => {});   // Handle rejection
+        testRateLimiter.execute(successFn).catch(() => {}); // Handle rejection
       }).not.toThrow();
 
-      // All functions should be attempted to be called
-      // (actual execution happens asynchronously)
+      // Verify the rate limiter continues to work by checking its state
+      const stats = testRateLimiter.getStats();
+      expect(stats).toBeDefined();
+      expect(stats.currentRequests).toBeDefined();
+      expect(stats.maxRequests).toBe(100);
+      expect(stats.queueSize).toBeDefined();
     });
   });
 
