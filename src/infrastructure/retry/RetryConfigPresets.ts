@@ -61,7 +61,7 @@ export class RetryConfigPresets {
         maxAttempts: 3,
         maxTotalTimeMs: 1000, // Quick for tests
         retryableStatusCodes: [429, 502, 503, 504],
-        retryableErrorTypes: [RateLimitError, NetworkError],
+        retryableErrorTypes: [RateLimitError, NetworkError, GoveeApiError],
       },
       circuitBreaker: {
         enabled: false, // Disabled for testing
@@ -93,7 +93,7 @@ export class RetryConfigPresets {
         maxAttempts: 3, // Conservative retry count
         maxTotalTimeMs: 180000, // 3 minutes total
         retryableStatusCodes: [429, 502, 503, 504], // Only server errors
-        retryableErrorTypes: [RateLimitError, NetworkError],
+        retryableErrorTypes: [RateLimitError, NetworkError, GoveeApiError],
       },
       circuitBreaker: {
         enabled: true,

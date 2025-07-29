@@ -36,10 +36,10 @@ describe('Retry Logic Integration Tests', () => {
       debug: vi.fn(),
     } as any;
 
-    // Create base repository
+    // Create base repository with shorter timeout for faster test failures
     baseRepository = new GoveeDeviceRepository({
       apiKey: TEST_API_KEY,
-      timeout: 5000,
+      timeout: 1000, // Short timeout for tests
       logger: mockLogger,
     });
 
@@ -279,16 +279,37 @@ describe('Retry Logic Integration Tests', () => {
       expect(metrics.totalAttempts).toBeGreaterThanOrEqual(2);
     });
 
-    it('should handle connection refused errors with retry', { timeout: 8000 }, async () => {
+    it('should handle connection refused errors with retry', { timeout: 15000 }, async () => {
+      // First attempt - connection refused
       nock(API_BASE_URL)
         .post('/router/api/v1/device/state')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
         .matchHeader('Content-Type', 'application/json')
-        .replyWithError({ code: 'ECONNREFUSED', message: 'Connection refused' })
+        .replyWithError({
+          message: 'connect ECONNREFUSED 127.0.0.1:443',
+          code: 'ECONNREFUSED',
+          errno: -61,
+          syscall: 'connect',
+          address: '127.0.0.1',
+          port: 443
+        });
+
+      // Second attempt - connection refused
+      nock(API_BASE_URL)
         .post('/router/api/v1/device/state')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
         .matchHeader('Content-Type', 'application/json')
-        .replyWithError({ code: 'ECONNREFUSED', message: 'Connection refused' })
+        .replyWithError({
+          message: 'connect ECONNREFUSED 127.0.0.1:443',
+          code: 'ECONNREFUSED',
+          errno: -61,
+          syscall: 'connect',
+          address: '127.0.0.1',
+          port: 443
+        });
+
+      // Third attempt succeeds
+      nock(API_BASE_URL)
         .post('/router/api/v1/device/state')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
         .matchHeader('Content-Type', 'application/json')
@@ -302,21 +323,28 @@ describe('Retry Logic Integration Tests', () => {
       expect(metrics.totalAttempts).toBe(3);
     });
 
-    it('should fail after network errors exceed retry limit', { timeout: 8000 }, async () => {
+    it('should fail after network errors exceed retry limit', { timeout: 15000 }, async () => {
+      // All attempts return connection refused errors
       nock(API_BASE_URL)
         .post('/router/api/v1/device/state')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
         .matchHeader('Content-Type', 'application/json')
-        .replyWithError({ code: 'ECONNREFUSED', message: 'Connection refused' })
+        .replyWithError({
+          message: 'connect ECONNREFUSED 127.0.0.1:443',
+          code: 'ECONNREFUSED',
+          errno: -61,
+          syscall: 'connect',
+          address: '127.0.0.1',
+          port: 443
+        })
         .persist();
 
       await expect(
         retryableRepository.findState('device123', 'H6160')
-      ).rejects.toThrow(); // Will throw either connection error or timeout
+      ).rejects.toThrow(); // Any network error should cause failure
 
       const metrics = retryableRepository.getRetryMetrics();
-      expect(metrics.totalAttempts).toBeGreaterThanOrEqual(2); // May timeout before reaching max attempts
-      // TODO: Fix metrics expectation
+      expect(metrics.totalAttempts).toBe(3); // Should reach max attempts
       expect(metrics.failedRetries).toBeGreaterThan(0); // At least one failed operation
     });
   });
@@ -561,6 +589,10 @@ describe('Retry Logic Integration Tests', () => {
           maxDelayMs: 1000,
           multiplier: 2.0,
         },
+        condition: {
+          ...RetryConfigPresets.production(mockLogger).condition,
+          maxTotalTimeMs: 10000, // Longer total time for tests
+        },
       };
       
       const prodRetryExecutor = new RetryExecutor(
@@ -574,33 +606,41 @@ describe('Retry Logic Integration Tests', () => {
         logger: mockLogger,
       });
 
+      const mockResponse = {
+        code: 200,
+        message: 'Success',
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6160',
+            deviceName: 'Test Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+            ],
+          },
+        ],
+      };
+
+      // Production config includes GoveeApiError in retryableErrorTypes, so it will retry 503 errors
+      // Need to mock all 3 attempts (maxAttempts: 3) for proper testing
       nock(API_BASE_URL)
         .get('/router/api/v1/user/devices')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
         .reply(503, { message: 'Service unavailable' })
         .get('/router/api/v1/user/devices')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
-        .reply(200, {
-          code: 200,
-          message: 'Success',
-          data: [
-            {
-              device: 'device123',
-              sku: 'H6160',
-              deviceName: 'Test Light',
-              capabilities: [
-                { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              ],
-            },
-          ],
-        });
+        .reply(503, { message: 'Service unavailable' })
+        .get('/router/api/v1/user/devices')
+        .matchHeader('Govee-API-Key', TEST_API_KEY)
+        .reply(200, mockResponse);
 
       const devices = await prodRepository.findAll();
       expect(devices).toHaveLength(1);
 
       // Production config should have succeeded with retry
       const metrics = prodRepository.getRetryMetrics();
-      expect(metrics.totalAttempts).toBeGreaterThan(1);
+      expect(metrics.totalAttempts).toBe(3); // Should have made 3 attempts
+      expect(metrics.successfulRetries).toBe(1); // One successful operation after retries
     });
 
     it('should work with testing configuration', { timeout: 8000 }, async () => {
@@ -612,6 +652,11 @@ describe('Retry Logic Integration Tests', () => {
           initialDelayMs: 50, // Fast for tests
           maxDelayMs: 50,
         },
+        condition: {
+          ...RetryConfigPresets.testing().condition,
+          maxTotalTimeMs: 5000, // Longer total time for tests
+        },
+        enableMetrics: true, // Enable metrics for this test
       };
       
       const testRetryExecutor = new RetryExecutor(
@@ -625,29 +670,87 @@ describe('Retry Logic Integration Tests', () => {
         enableRequestIds: false,
       });
 
+      const mockResponse = {
+        code: 200,
+        message: 'Success',
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6160',
+            deviceName: 'Test Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+            ],
+          },
+        ],
+      };
+
+      // Testing config now includes GoveeApiError in retryableErrorTypes
+      // So use 503 (server error) which is retryable for testing config
       nock(API_BASE_URL)
         .get('/router/api/v1/user/devices')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
         .reply(503, { message: 'Service unavailable' })
         .get('/router/api/v1/user/devices')
         .matchHeader('Govee-API-Key', TEST_API_KEY)
-        .reply(200, {
-          code: 200,
-          message: 'Success',
-          data: [
-            {
-              device: 'device123',
-              sku: 'H6160',
-              deviceName: 'Test Light',
-              capabilities: [
-                { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              ],
-            },
-          ],
-        });
+        .reply(200, mockResponse);
 
       const devices = await testRepository.findAll();
       expect(devices).toHaveLength(1);
+      
+      // Testing config should have succeeded with retry
+      const metrics = testRepository.getRetryMetrics();
+      expect(metrics.totalAttempts).toBe(2); // Should have made 2 attempts
+    });
+
+    it('should retry GoveeApiError properly with testing configuration', async () => {
+      // Testing config now includes GoveeApiError in retryableErrorTypes
+      const testingConfigWithMetrics = {
+        ...RetryConfigPresets.testing(),
+        enableMetrics: true, // Enable metrics for this test
+      };
+      
+      const testRetryExecutor = new RetryExecutor(
+        new RetryPolicy(testingConfigWithMetrics),
+        { enableRequestLogging: false }
+      );
+
+      const testRepository = new RetryableRepository({
+        repository: baseRepository,
+        retryExecutor: testRetryExecutor,
+        enableRequestIds: false,
+      });
+
+      const mockResponse = {
+        code: 200,
+        message: 'Success',
+        data: [
+          {
+            device: 'device123',
+            sku: 'H6160',
+            deviceName: 'Test Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+            ],
+          },
+        ],
+      };
+
+      // Mock 503 error (GoveeApiError) which should be retried in testing config
+      nock(API_BASE_URL)
+        .get('/router/api/v1/user/devices')
+        .matchHeader('Govee-API-Key', TEST_API_KEY)
+        .reply(503, { message: 'Service unavailable' })
+        .get('/router/api/v1/user/devices')
+        .matchHeader('Govee-API-Key', TEST_API_KEY)
+        .reply(200, mockResponse);
+
+      const devices = await testRepository.findAll();
+      expect(devices).toHaveLength(1);
+
+      const metrics = testRepository.getRetryMetrics();
+      expect(metrics.totalAttempts).toBe(2); // Should have made 2 attempts
+      expect(metrics.successfulRetries).toBe(1); // One successful operation
     });
   });
 

@@ -132,10 +132,10 @@ describe('RetryConfigPresets', () => {
     it('should only retry specific error types', () => {
       const config = RetryConfigPresets.production();
       
-      // Should include only safe-to-retry errors
+      // Should include safe-to-retry errors including GoveeApiError for HTTP 503 errors
       expect(config.condition.retryableErrorTypes).toContain(RateLimitError);
       expect(config.condition.retryableErrorTypes).toContain(NetworkError);
-      expect(config.condition.retryableErrorTypes).not.toContain(GoveeApiError);
+      expect(config.condition.retryableErrorTypes).toContain(GoveeApiError);
     });
   });
 

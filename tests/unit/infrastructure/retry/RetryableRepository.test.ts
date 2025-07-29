@@ -406,7 +406,7 @@ describe('RetryableRepository', () => {
     });
 
     it('should maintain error properties through retries', async () => {
-      const rateLimitError = new RateLimitError('Rate limited', 30, 100, 5);
+      const rateLimitError = new RateLimitError('Rate limited', 1, 100, 5); // 1 second retry-after
       vi.mocked(mockRepository.findState).mockRejectedValue(rateLimitError);
 
       let caughtError: RateLimitError | undefined;
@@ -417,7 +417,7 @@ describe('RetryableRepository', () => {
       }
 
       expect(caughtError).toBeInstanceOf(RateLimitError);
-      expect(caughtError?.retryAfter).toBe(30);
+      expect(caughtError?.retryAfter).toBe(1);
       expect(caughtError?.limit).toBe(100);
       expect(caughtError?.remaining).toBe(5);
     });
