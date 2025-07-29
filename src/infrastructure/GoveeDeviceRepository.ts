@@ -404,10 +404,32 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       colorTem: 'devices.capabilities.color_setting',
     };
 
+    // Map instances correctly according to Govee API v1 specification
+    let instance: string;
+    let value: unknown;
+
+    if (cmdObj.name === 'turn') {
+      // Power commands use 'powerSwitch' instance and numeric values
+      instance = 'powerSwitch';
+      value = cmdObj.value === 'on' ? 1 : 0; // Convert string to number: on=1, off=0
+    } else if (cmdObj.name === 'color') {
+      // Color commands use 'colorRgb' instance
+      instance = 'colorRgb';
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'colorTem') {
+      // Color temperature uses specific instance name
+      instance = 'colorTemperatureK';
+      value = cmdObj.value;
+    } else {
+      // Other commands (brightness) use their name as instance
+      instance = cmdObj.name;
+      value = cmdObj.value;
+    }
+
     return {
       type: capabilityTypeMap[cmdObj.name] || `devices.capabilities.${cmdObj.name}`,
-      instance: cmdObj.name === 'colorTem' ? 'colorTemperatureK' : cmdObj.name,
-      value: cmdObj.value,
+      instance,
+      value,
     };
   }
 

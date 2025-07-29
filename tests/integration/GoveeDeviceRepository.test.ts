@@ -274,7 +274,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.on_off');
-          expect(body.payload.capability.value).toBe('on');
+          expect(body.payload.capability.instance).toBe('powerSwitch'); // Fixed: correct instance
+          expect(body.payload.capability.value).toBe(1); // Fixed: numeric value for 'on'
           
           // Validate requestId is a valid UUID v4
           const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -290,6 +291,30 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       await expect(repository.sendCommand('device123', 'H6159', command)).resolves.not.toThrow();
     });
 
+    it('should successfully send power off command', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          expect(body.payload.device).toBe('device123');
+          expect(body.payload.sku).toBe('H6159');
+          expect(body.payload.capability.type).toBe('devices.capabilities.on_off');
+          expect(body.payload.capability.instance).toBe('powerSwitch'); // Fixed: correct instance
+          expect(body.payload.capability.value).toBe(0); // Fixed: numeric value for 'off'
+          
+          // Validate requestId is a valid UUID v4
+          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          expect(body.requestId).toMatch(uuidV4Regex);
+          expect(typeof body.requestId).toBe('string');
+          expect(body.requestId).toHaveLength(36);
+          
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const command = CommandFactory.powerOff();
+      await expect(repository.sendCommand('device123', 'H6159', command)).resolves.not.toThrow();
+    });
+
     it('should successfully send brightness command', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
@@ -297,6 +322,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.range');
+          expect(body.payload.capability.instance).toBe('brightness'); // Added: verify correct instance
           expect(body.payload.capability.value).toBe(75);
           
           // Validate requestId is a valid UUID v4
@@ -318,6 +344,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.color_setting');
+          expect(body.payload.capability.instance).toBe('colorRgb'); // Fixed: check correct instance
           expect(body.payload.capability.value).toEqual({ r: 255, g: 128, b: 0 });
           return HttpResponse.json(mockCommandResponse);
         })

@@ -221,7 +221,8 @@ describe('GoveeClient Integration Tests', () => {
       expect(capturedCommand.device).toBe('living-room-123');
       expect(capturedCommand.sku).toBe('H6159');
       expect(capturedCommand.capability.type).toBe('devices.capabilities.on_off');
-      expect(capturedCommand.capability.value).toBe('on');
+      expect(capturedCommand.capability.instance).toBe('powerSwitch');
+      expect(capturedCommand.capability.value).toBe(1);
     });
 
     it('should turn device off', async () => {
@@ -238,7 +239,8 @@ describe('GoveeClient Integration Tests', () => {
       await client.turnOff('living-room-123', 'H6159');
 
       expect(capturedCommand.capability.type).toBe('devices.capabilities.on_off');
-      expect(capturedCommand.capability.value).toBe('off');
+      expect(capturedCommand.capability.instance).toBe('powerSwitch');
+      expect(capturedCommand.capability.value).toBe(0);
     });
 
     it('should set brightness', async () => {
@@ -274,6 +276,7 @@ describe('GoveeClient Integration Tests', () => {
       await client.setColor('living-room-123', 'H6159', color);
 
       expect(capturedCommand.capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommand.capability.instance).toBe('colorRgb'); // Fixed: check correct instance
       expect(capturedCommand.capability.value).toEqual({ r: 255, g: 0, b: 128 });
     });
 
@@ -314,7 +317,8 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommands).toHaveLength(2);
       expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
-      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[0].capability.instance).toBe('powerSwitch');
+      expect(capturedCommands[0].capability.value).toBe(1);
       expect(capturedCommands[1].capability.type).toBe('devices.capabilities.range');
       expect(capturedCommands[1].capability.value).toBe(80);
     });
@@ -335,8 +339,10 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommands).toHaveLength(2);
       expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
-      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[0].capability.instance).toBe('powerSwitch');
+      expect(capturedCommands[0].capability.value).toBe(1);
       expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommands[1].capability.instance).toBe('colorRgb'); // Fixed: check correct instance
       expect(capturedCommands[1].capability.value).toEqual({ r: 0, g: 255, b: 0 });
     });
 
@@ -357,8 +363,10 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommands).toHaveLength(3);
       expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
-      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[0].capability.instance).toBe('powerSwitch');
+      expect(capturedCommands[0].capability.value).toBe(1);
       expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
+      expect(capturedCommands[1].capability.instance).toBe('colorRgb'); // Fixed: check correct instance
       expect(capturedCommands[1].capability.value).toEqual({ r: 0, g: 255, b: 0 });
       expect(capturedCommands[2].capability.type).toBe('devices.capabilities.range');
       expect(capturedCommands[2].capability.value).toBe(60);
@@ -380,7 +388,8 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommands).toHaveLength(2);
       expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
-      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[0].capability.instance).toBe('powerSwitch');
+      expect(capturedCommands[0].capability.value).toBe(1);
       expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
       expect(capturedCommands[1].capability.instance).toBe('colorTemperatureK');
       expect(capturedCommands[1].capability.value).toBe(3000);
@@ -403,7 +412,8 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommands).toHaveLength(3);
       expect(capturedCommands[0].capability.type).toBe('devices.capabilities.on_off');
-      expect(capturedCommands[0].capability.value).toBe('on');
+      expect(capturedCommands[0].capability.instance).toBe('powerSwitch');
+      expect(capturedCommands[0].capability.value).toBe(1);
       expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
       expect(capturedCommands[1].capability.instance).toBe('colorTemperatureK');
       expect(capturedCommands[1].capability.value).toBe(3000);
@@ -519,7 +529,7 @@ describe('GoveeClient Integration Tests', () => {
       );
 
       expect(capturedCommands).toHaveLength(2); // Two controllable devices
-      expect(capturedCommands.every(cmd => cmd.capability.type === 'devices.capabilities.on_off' && cmd.capability.value === 'off')).toBe(true);
+      expect(capturedCommands.every(cmd => cmd.capability.type === 'devices.capabilities.on_off' && cmd.capability.instance === 'powerSwitch' && cmd.capability.value === 0)).toBe(true);
     });
   });
 });

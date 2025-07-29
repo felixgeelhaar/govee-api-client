@@ -86,6 +86,85 @@ describe('Error classes', () => {
       expect(obj.apiMessage).toBe('Device offline');
       expect(obj.timestamp).toBeDefined();
     });
+
+    describe('fromResponse with malformed data', () => {
+      it('should handle null response body', () => {
+        const error = GoveeApiError.fromResponse(400, null);
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+        expect(error.apiErrorCode).toBeUndefined();
+        expect(error.apiMessage).toBeUndefined();
+      });
+
+      it('should handle undefined response body', () => {
+        const error = GoveeApiError.fromResponse(400, undefined);
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+        expect(error.apiErrorCode).toBeUndefined();
+        expect(error.apiMessage).toBeUndefined();
+      });
+
+      it('should handle empty string response body', () => {
+        const error = GoveeApiError.fromResponse(400, '');
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+      });
+
+      it('should handle whitespace-only string response body', () => {
+        const error = GoveeApiError.fromResponse(400, '   \n\t  ');
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+      });
+
+      it('should handle response body with null message', () => {
+        const error = GoveeApiError.fromResponse(400, { code: 1001, message: null as any });
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+        expect(error.apiErrorCode).toBe(1001);
+        expect(error.apiMessage).toBe(null);
+      });
+
+      it('should handle response body with undefined message', () => {
+        const error = GoveeApiError.fromResponse(400, { code: 1001, message: undefined });
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+        expect(error.apiErrorCode).toBe(1001);
+        expect(error.apiMessage).toBeUndefined();
+      });
+
+      it('should handle response body with empty string message', () => {
+        const error = GoveeApiError.fromResponse(400, { code: 1001, message: '' });
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+        expect(error.apiErrorCode).toBe(1001);
+        expect(error.apiMessage).toBe('');
+      });
+
+      it('should handle response body with whitespace-only message', () => {
+        const error = GoveeApiError.fromResponse(400, { code: 1001, message: '  \n\t  ' });
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+        expect(error.apiErrorCode).toBe(1001);
+        expect(error.apiMessage).toBe('  \n\t  ');
+      });
+
+      it('should handle response body with non-string message', () => {
+        const error = GoveeApiError.fromResponse(400, { code: 1001, message: 123 as any });
+        
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toBe('Govee API error (HTTP 400)');
+        expect(error.apiErrorCode).toBe(1001);
+        expect(error.apiMessage).toBe(123);
+      });
+    });
   });
 
   describe('InvalidApiKeyError', () => {

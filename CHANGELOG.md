@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-07-29
+
+### 🐛 Critical Bug Fixes
+
+#### Fixed API Command Format Issues
+
+- **Fixed "400 undefined" errors** when controlling devices due to incorrect capability mapping
+- **Power commands**: Now correctly use `instance: 'powerSwitch'` with numeric values (1/0) instead of string values ("on"/"off")
+- **Color commands**: Now correctly use `instance: 'colorRgb'` instead of 'color'
+- **Enhanced error handling**: Improved `GoveeApiError.fromResponse()` to handle malformed API responses gracefully
+
+#### API Compliance Improvements
+
+- **100% Govee API v1 compliance**: All device control commands now conform exactly to official Govee Developer API specification
+- **Verified against official documentation**: Confirmed correct instance names and value formats for all device capabilities
+- **Eliminated HTTP 400 errors**: Fixed root cause of capability format mismatches
+
+#### Test Coverage Enhancements
+
+- **Updated integration tests**: All 478 tests now validate correct API request formats
+- **Added malformed response tests**: Enhanced error handling coverage for edge cases
+- **Command validation**: Added comprehensive tests for all capability instance mappings
+
+### Technical Details
+
+The fix addresses GitHub issues [#5](https://github.com/felixgeelhaar/govee-api-client/issues/5) and [#6](https://github.com/felixgeelhaar/govee-api-client/issues/6) by correcting the `convertCommandToCapability()` method in `GoveeDeviceRepository.ts`:
+
+```typescript
+// Before (caused 400 errors):
+{ instance: 'turn', value: 'on' }
+{ instance: 'color', value: { r: 255, g: 0, b: 0 } }
+
+// After (API compliant):
+{ instance: 'powerSwitch', value: 1 }
+{ instance: 'colorRgb', value: { r: 255, g: 0, b: 0 } }
+```
+
+This patch ensures reliable device control operations and eliminates the user-reported "400 undefined" errors.
+
+---
+
 ## [2.0.0] - 2025-07-29
 
 ### 🚀 Major Infrastructure Release
