@@ -5,14 +5,16 @@
 [![CI](https://github.com/felixgeelhaar/govee-api-client/workflows/CI/badge.svg)](https://github.com/felixgeelhaar/govee-api-client/actions)
 [![codecov](https://codecov.io/gh/felixgeelhaar/govee-api-client/branch/main/graph/badge.svg)](https://codecov.io/gh/felixgeelhaar/govee-api-client)
 
-An enterprise-grade TypeScript client library for the Govee Developer REST API. Built with Domain-Driven Design (DDD) principles and comprehensive error handling.
+An enterprise-grade TypeScript client library for the Govee Developer REST API. Built with Domain-Driven Design (DDD) principles, comprehensive error handling, and production-ready rate limiting and retry capabilities.
 
 ## Features
 
 - 🎯 **Type-Safe**: Full TypeScript support with comprehensive type definitions
 - 🏗️ **Domain-Driven Design**: Clean architecture following DDD principles
-- ⚡ **Rate Limiting**: Built-in rate limiting to prevent API throttling
+- ⚡ **Rate Limiting**: High-performance sliding window rate limiter with burst capability
+- 🔄 **Retry Logic**: Enterprise-grade retry with exponential backoff, jitter, and circuit breaker
 - 🛡️ **Error Handling**: Comprehensive error hierarchy with specific error types
+- 📊 **Observability**: Built-in metrics and monitoring for rate limiting and retries
 - 📝 **Logging**: Configurable logging with Pino integration
 - 🧪 **Well Tested**: >95% test coverage with unit and integration tests
 - 🚀 **Production Ready**: Enterprise-grade reliability and performance
@@ -60,12 +62,15 @@ if (livingRoomLight) {
 
 ```typescript
 import pino from 'pino';
+import { GoveeClient, RetryPolicy } from '@felixgeelhaar/govee-api-client';
 
 const client = new GoveeClient({
   apiKey: 'your-govee-api-key',
   timeout: 30000, // Request timeout in milliseconds (default: 30000)
-  rateLimit: 100, // Requests per minute (default: 100)
+  rateLimit: 95, // Requests per minute (default: 95, with 5 buffer under Govee's limit)
   logger: pino({ level: 'info' }), // Optional logger (silent by default)
+  enableRetries: true, // Enable retry functionality (default: false)
+  retryPolicy: 'production', // Retry policy preset or custom RetryPolicy instance
 });
 ```
 
@@ -187,17 +192,165 @@ try {
 }
 ```
 
-## Rate Limiting
+## Rate Limiting & Retry Features
 
-The client automatically handles rate limiting according to Govee's API limits (100 requests per minute by default). All requests are queued and throttled appropriately.
+The client includes enterprise-grade rate limiting and retry capabilities designed for production environments.
+
+### Rate Limiting
+
+Uses a high-performance sliding window rate limiter that allows bursts up to the limit while maintaining the average rate over time:
 
 ```typescript
-// Customize rate limiting
 const client = new GoveeClient({
   apiKey: 'your-api-key',
-  rateLimit: 60, // 60 requests per minute
+  rateLimit: 95, // Default: 95 req/min (5 request buffer under Govee's 100/min limit)
+});
+
+// Monitor rate limiter performance
+const stats = client.getRateLimiterStats();
+console.log(`Current utilization: ${stats.utilizationPercent}%`);
+console.log(`Queue size: ${stats.queueSize}`);
+console.log(`Can execute immediately: ${stats.canExecuteImmediately}`);
+```
+
+### Retry Logic
+
+Comprehensive retry functionality with exponential backoff, jitter, and circuit breaker:
+
+```typescript
+const client = new GoveeClient({
+  apiKey: 'your-api-key',
+  enableRetries: true,
+  retryPolicy: 'production', // 'development', 'testing', 'production'
+});
+
+// Monitor retry performance
+const retryMetrics = client.getRetryMetrics();
+if (retryMetrics) {
+  console.log(`Total retry attempts: ${retryMetrics.totalAttempts}`);
+  console.log(`Success rate: ${retryMetrics.successfulRetries}/${retryMetrics.totalAttempts}`);
+  console.log(`Circuit breaker state: ${retryMetrics.circuitBreakerState}`);
+}
+```
+
+### Custom Retry Policies
+
+Create custom retry policies for specific requirements:
+
+```typescript
+import {
+  GoveeClient,
+  RetryPolicy,
+  RateLimitError,
+  NetworkError,
+  GoveeApiError,
+} from '@felixgeelhaar/govee-api-client';
+
+const customRetryPolicy = new RetryPolicy({
+  backoff: {
+    type: 'exponential',
+    initialDelayMs: 1000,
+    maxDelayMs: 30000,
+    multiplier: 2.0,
+  },
+  jitter: {
+    type: 'equal',
+    factor: 0.1,
+  },
+  condition: {
+    maxAttempts: 3,
+    maxTotalTimeMs: 60000,
+    retryableStatusCodes: [408, 429, 502, 503, 504],
+    retryableErrorTypes: [RateLimitError, NetworkError, GoveeApiError],
+  },
+  circuitBreaker: {
+    enabled: true,
+    failureThreshold: 5,
+    recoveryTimeoutMs: 30000,
+    halfOpenSuccessThreshold: 2,
+  },
+  enableMetrics: true,
+});
+
+const client = new GoveeClient({
+  apiKey: 'your-api-key',
+  enableRetries: true,
+  retryPolicy: customRetryPolicy,
 });
 ```
+
+### Monitoring & Observability
+
+Get comprehensive metrics for monitoring and debugging:
+
+```typescript
+// Get complete service statistics
+const serviceStats = client.getServiceStats();
+console.log('Rate Limiter:', serviceStats.rateLimiter);
+console.log('Retry Metrics:', serviceStats.retries);
+console.log('Configuration:', serviceStats.configuration);
+
+// Rate limiter specific stats
+const rateLimiterStats = client.getRateLimiterStats();
+console.log({
+  currentRequests: rateLimiterStats.currentRequests,
+  maxRequests: rateLimiterStats.maxRequests,
+  utilizationPercent: rateLimiterStats.utilizationPercent,
+  queueSize: rateLimiterStats.queueSize,
+  canExecuteImmediately: rateLimiterStats.canExecuteImmediately,
+  nextAvailableSlot: rateLimiterStats.nextAvailableSlot,
+});
+
+// Retry metrics (when retries are enabled)
+const retryMetrics = client.getRetryMetrics();
+if (retryMetrics) {
+  console.log({
+    totalAttempts: retryMetrics.totalAttempts,
+    successfulRetries: retryMetrics.successfulRetries,
+    failedRetries: retryMetrics.failedRetries,
+    totalRetryTimeMs: retryMetrics.totalRetryTimeMs,
+    averageRetryDelayMs: retryMetrics.averageRetryDelayMs,
+    circuitBreakerState: retryMetrics.circuitBreakerState,
+    lastError: retryMetrics.lastError?.message,
+    lastRetryTimestamp: retryMetrics.lastRetryTimestamp,
+  });
+}
+
+// Reset metrics for clean monitoring periods
+client.resetRetryMetrics();
+```
+
+### Retry Policy Presets
+
+The library includes three built-in retry policy presets optimized for different environments:
+
+#### Production (Default)
+
+- **Max attempts**: 3
+- **Backoff**: Exponential with 1s initial delay, 30s max
+- **Circuit breaker**: Enabled (5 failures to open, 30s recovery)
+- **Jitter**: Equal jitter to prevent thundering herd
+
+#### Development
+
+- **Max attempts**: 5
+- **Backoff**: Exponential with 500ms initial delay, 15s max
+- **Circuit breaker**: Disabled for easier debugging
+- **Jitter**: Full jitter for maximum randomization
+
+#### Testing
+
+- **Max attempts**: 2
+- **Backoff**: Exponential with 2s initial delay, 60s max
+- **Circuit breaker**: Enabled with conservative settings
+- **Jitter**: Decorrelated jitter for sophisticated patterns
+
+### Performance Characteristics
+
+- **Rate Limiter**: High-performance sliding window allows concurrent execution within limits
+- **Memory Efficient**: Automatic cleanup of expired timestamps and bounded queue sizes
+- **Production Ready**: Circuit breaker prevents cascade failures
+- **Observable**: Comprehensive metrics for monitoring and alerting
 
 ## Domain-Driven Design
 

@@ -1,40 +1,130 @@
-import pLimit from 'p-limit';
 import { Logger } from 'pino';
 import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepository';
 import { GoveeDevice } from '../domain/entities/GoveeDevice';
 import { DeviceState } from '../domain/entities/DeviceState';
 import { Command, CommandFactory } from '../domain/entities/Command';
 import { ColorRgb, ColorTemperature, Brightness } from '../domain/value-objects';
+import { SlidingWindowRateLimiter, SlidingWindowRateLimiterConfig } from '../infrastructure';
+import {
+  RetryableRepository,
+  RetryExecutor,
+  RetryPolicy,
+  RetryConfigPresets,
+} from '../infrastructure/retry';
 
 export interface GoveeControlServiceConfig {
   repository: IGoveeDeviceRepository;
   rateLimit?: number; // requests per minute
   logger?: Logger;
+  rateLimiterConfig?: Partial<SlidingWindowRateLimiterConfig>;
+  enableRetries?: boolean; // Enable retry functionality
+  retryPolicy?: 'development' | 'testing' | 'production' | 'custom' | RetryPolicy;
 }
 
 export class GoveeControlService {
   private readonly repository: IGoveeDeviceRepository;
   private readonly logger: Logger | undefined;
-  private readonly rateLimiter: (fn: () => Promise<any>) => Promise<any>;
+  private readonly rateLimiter: SlidingWindowRateLimiter;
+  private readonly enableRetries: boolean;
 
   constructor(config: GoveeControlServiceConfig) {
     this.validateConfig(config);
 
-    this.repository = config.repository;
+    // Set up retry functionality if enabled
+    this.enableRetries = config.enableRetries ?? false;
+    if (this.enableRetries) {
+      this.repository = this.createRetryableRepository(config);
+    } else {
+      this.repository = config.repository;
+    }
     this.logger = config.logger;
 
-    // Default to 100 requests per minute (Govee API limit)
-    const requestsPerMinute = config.rateLimit ?? 100;
-    const requestsPerSecond = requestsPerMinute / 60;
-    const intervalMs = 1000 / requestsPerSecond;
+    // Default to 95 requests per minute (5 request buffer under Govee API limit)
+    const requestsPerMinute = config.rateLimit ?? 95;
 
-    // Create rate limiter with proper interval
-    this.rateLimiter = pLimit(1); // One request at a time
+    // Initialize the sliding window rate limiter
+    if (config.rateLimiterConfig) {
+      // Use custom configuration
+      this.rateLimiter = new SlidingWindowRateLimiter({
+        maxRequests: requestsPerMinute,
+        windowMs: 60 * 1000, // 1 minute
+        logger: this.logger,
+        ...config.rateLimiterConfig,
+      });
+    } else if (requestsPerMinute === 95) {
+      // Use optimized factory for Govee API
+      this.rateLimiter = SlidingWindowRateLimiter.forGoveeApi(this.logger);
+    } else {
+      // Use custom rate limit
+      this.rateLimiter = SlidingWindowRateLimiter.custom(requestsPerMinute, this.logger);
+    }
 
     this.logger?.info(
-      { requestsPerMinute, intervalMs },
-      'Initialized GoveeControlService with rate limiting'
+      {
+        requestsPerMinute,
+        rateLimiterType: 'SlidingWindow',
+        enableRetries: this.enableRetries,
+        retryPolicy: this.enableRetries ? config.retryPolicy || 'production' : 'disabled',
+        stats: this.rateLimiter.getStats(),
+      },
+      'Initialized GoveeControlService with sliding window rate limiting'
     );
+  }
+
+  /**
+   * Creates a retry-enabled repository wrapper
+   */
+  private createRetryableRepository(config: GoveeControlServiceConfig): IGoveeDeviceRepository {
+    let retryPolicy: RetryPolicy;
+
+    // Determine retry policy based on configuration
+    if (config.retryPolicy instanceof RetryPolicy) {
+      retryPolicy = config.retryPolicy;
+    } else {
+      const policyType = config.retryPolicy || 'production';
+      switch (policyType) {
+        case 'development':
+          retryPolicy = new RetryPolicy(RetryConfigPresets.development(this.logger));
+          break;
+        case 'testing':
+          retryPolicy = new RetryPolicy(RetryConfigPresets.testing(this.logger));
+          break;
+        case 'production':
+          retryPolicy = new RetryPolicy(RetryConfigPresets.production(this.logger));
+          break;
+        case 'custom':
+          // Use Govee-optimized defaults for custom
+          retryPolicy = RetryPolicy.createGoveeOptimized(this.logger);
+          break;
+        default:
+          retryPolicy = new RetryPolicy(RetryConfigPresets.production(this.logger));
+      }
+    }
+
+    const retryExecutor = new RetryExecutor(retryPolicy, {
+      logger: this.logger,
+      enableRequestLogging: true,
+      enablePerformanceTracking: true,
+    });
+
+    const retryableRepository = new RetryableRepository({
+      repository: config.repository,
+      retryExecutor,
+      logger: this.logger,
+      enableRequestIds: true,
+    });
+
+    this.logger?.info(
+      {
+        retryPolicy: retryPolicy.getMetrics().circuitBreakerState
+          ? 'enabled_with_circuit_breaker'
+          : 'enabled',
+        maxAttempts: retryPolicy instanceof RetryPolicy ? 'configured' : 'default',
+      },
+      'Created retry-enabled repository wrapper'
+    );
+
+    return retryableRepository;
   }
 
   private validateConfig(config: GoveeControlServiceConfig): void {
@@ -55,7 +145,7 @@ export class GoveeControlService {
   async getDevices(): Promise<GoveeDevice[]> {
     this.logger?.info('Getting all devices');
 
-    return this.rateLimiter(async () => {
+    return this.rateLimiter.execute(async () => {
       const devices = await this.repository.findAll();
       this.logger?.info(`Retrieved ${devices.length} devices`);
       return devices;
@@ -69,7 +159,7 @@ export class GoveeControlService {
     this.validateDeviceParams(deviceId, model);
     this.logger?.info({ deviceId, model }, 'Getting device state');
 
-    return this.rateLimiter(async () => {
+    return this.rateLimiter.execute(async () => {
       const state = await this.repository.findState(deviceId, model);
       this.logger?.info({ deviceId, model, online: state.online }, 'Retrieved device state');
       return state;
@@ -83,7 +173,7 @@ export class GoveeControlService {
     this.validateDeviceParams(deviceId, model);
     this.logger?.info({ deviceId, model, command: command.toObject() }, 'Sending command');
 
-    return this.rateLimiter(async () => {
+    return this.rateLimiter.execute(async () => {
       await this.repository.sendCommand(deviceId, model, command);
       this.logger?.info({ deviceId, model }, 'Command sent successfully');
     });
@@ -243,6 +333,65 @@ export class GoveeControlService {
   async findDevicesByModel(model: string): Promise<GoveeDevice[]> {
     const devices = await this.getDevices();
     return devices.filter(device => device.model === model);
+  }
+
+  /**
+   * Gets current rate limiter statistics for monitoring and debugging
+   */
+  getRateLimiterStats() {
+    return this.rateLimiter.getStats();
+  }
+
+  /**
+   * Gets retry metrics if retry functionality is enabled
+   */
+  getRetryMetrics() {
+    if (!this.enableRetries) {
+      return null;
+    }
+
+    if (this.repository instanceof RetryableRepository) {
+      return this.repository.getRetryMetrics();
+    }
+
+    return null;
+  }
+
+  /**
+   * Resets retry metrics if retry functionality is enabled
+   */
+  resetRetryMetrics(): void {
+    if (!this.enableRetries) {
+      return;
+    }
+
+    if (this.repository instanceof RetryableRepository) {
+      this.repository.resetRetryMetrics();
+      this.logger?.info('Retry metrics reset');
+    }
+  }
+
+  /**
+   * Gets comprehensive service statistics including rate limiter and retry metrics
+   */
+  getServiceStats() {
+    const stats = {
+      rateLimiter: this.getRateLimiterStats(),
+      retries: this.getRetryMetrics(),
+      configuration: {
+        enableRetries: this.enableRetries,
+        rateLimit: this.rateLimiter.getStats().maxRequests,
+      },
+    };
+
+    return stats;
+  }
+
+  /**
+   * Checks if retry functionality is enabled
+   */
+  isRetryEnabled(): boolean {
+    return this.enableRetries;
   }
 
   private validateDeviceParams(deviceId: string, model: string): void {

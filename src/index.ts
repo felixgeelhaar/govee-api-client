@@ -35,3 +35,14 @@ export {
 export { GoveeControlService, type GoveeControlServiceConfig } from './services';
 export { GoveeDeviceRepository } from './infrastructure';
 export { type IGoveeDeviceRepository } from './domain/repositories';
+
+// Retry infrastructure (for custom retry policies)
+export {
+  RetryPolicy,
+  type RetryPolicyConfig,
+  type BackoffStrategy,
+  type JitterConfig,
+  type RetryCondition,
+  type CircuitBreakerConfig,
+  type RetryMetrics,
+} from './infrastructure/retry';

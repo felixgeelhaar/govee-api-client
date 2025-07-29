@@ -5,12 +5,15 @@ import { GoveeDevice } from './domain/entities/GoveeDevice';
 import { DeviceState } from './domain/entities/DeviceState';
 import { Command } from './domain/entities/Command';
 import { ColorRgb, ColorTemperature, Brightness } from './domain/value-objects';
+import { RetryPolicy } from './infrastructure/retry';
 
 export interface GoveeClientConfig {
   apiKey: string;
   timeout?: number;
   rateLimit?: number;
   logger?: Logger;
+  enableRetries?: boolean;
+  retryPolicy?: 'development' | 'testing' | 'production' | 'custom' | RetryPolicy;
 }
 
 export class GoveeClient {
@@ -45,6 +48,14 @@ export class GoveeClient {
       serviceConfig.rateLimit = config.rateLimit;
     }
 
+    if (config.enableRetries !== undefined) {
+      serviceConfig.enableRetries = config.enableRetries;
+    }
+
+    if (config.retryPolicy !== undefined) {
+      serviceConfig.retryPolicy = config.retryPolicy;
+    }
+
     this.controlService = new GoveeControlService(serviceConfig);
 
     this.logger.info('GoveeClient initialized successfully');
@@ -65,6 +76,20 @@ export class GoveeClient {
       (!Number.isInteger(config.rateLimit) || config.rateLimit <= 0)
     ) {
       throw new Error('Rate limit must be a positive integer');
+    }
+    if (config.enableRetries !== undefined && typeof config.enableRetries !== 'boolean') {
+      throw new Error('enableRetries must be a boolean');
+    }
+    if (config.retryPolicy !== undefined) {
+      const validPolicies = ['development', 'testing', 'production', 'custom'];
+      if (
+        !(config.retryPolicy instanceof RetryPolicy) &&
+        !validPolicies.includes(config.retryPolicy as string)
+      ) {
+        throw new Error(
+          'retryPolicy must be a RetryPolicy instance or one of: development, testing, production, custom'
+        );
+      }
     }
   }
 
@@ -160,5 +185,26 @@ export class GoveeClient {
 
   async isDevicePoweredOn(deviceId: string, model: string): Promise<boolean> {
     return this.controlService.isDevicePoweredOn(deviceId, model);
+  }
+
+  // Monitoring and debugging methods
+  getRateLimiterStats() {
+    return this.controlService.getRateLimiterStats();
+  }
+
+  getRetryMetrics() {
+    return this.controlService.getRetryMetrics();
+  }
+
+  getServiceStats() {
+    return this.controlService.getServiceStats();
+  }
+
+  resetRetryMetrics(): void {
+    return this.controlService.resetRetryMetrics();
+  }
+
+  isRetryEnabled(): boolean {
+    return this.controlService.isRetryEnabled();
   }
 }
