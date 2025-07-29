@@ -101,7 +101,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
   private static readonly BASE_URL = 'https://openapi.api.govee.com';
 
   private generateRequestId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return crypto.randomUUID();
   }
 
   constructor(config: GoveeApiConfig) {
