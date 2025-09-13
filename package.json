@@ -37,7 +37,7 @@
   "author": "Felix Geelhaar <felix@geelhaar.com>",
   "license": "MIT",
   "dependencies": {
-    "axios": "1.11.0",
+    "axios": "1.12.0",
     "pino": "8.21.0",
     "zod": "4.0.10"
   },
