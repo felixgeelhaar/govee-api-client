@@ -8,7 +8,7 @@ import { ColorRgb, ColorTemperature, Brightness } from './domain/value-objects';
 import { RetryPolicy } from './infrastructure/retry';
 
 export interface GoveeClientConfig {
-  apiKey: string;
+  apiKey?: string;
   timeout?: number;
   rateLimit?: number;
   logger?: Logger;
@@ -20,15 +20,18 @@ export class GoveeClient {
   private readonly controlService: GoveeControlService;
   private readonly logger: Logger;
 
-  constructor(config: GoveeClientConfig) {
-    this.validateConfig(config);
+  constructor(config: GoveeClientConfig = {}) {
+    // Resolve API key from config or environment variable
+    const apiKey = config.apiKey ?? process.env.GOVEE_API_KEY;
+
+    this.validateConfig({ ...config, apiKey });
 
     // Initialize logger (silent by default)
     this.logger = config.logger ?? pino({ level: 'silent' });
 
     // Initialize repository
     const repositoryConfig: any = {
-      apiKey: config.apiKey,
+      apiKey: apiKey!,
       logger: this.logger,
     };
 
@@ -61,9 +64,11 @@ export class GoveeClient {
     this.logger.info('GoveeClient initialized successfully');
   }
 
-  private validateConfig(config: GoveeClientConfig): void {
+  private validateConfig(config: GoveeClientConfig & { apiKey?: string }): void {
     if (!config.apiKey || typeof config.apiKey !== 'string' || config.apiKey.trim().length === 0) {
-      throw new Error('API key is required and must be a non-empty string');
+      throw new Error(
+        'API key is required. Provide it via config.apiKey or set the GOVEE_API_KEY environment variable.'
+      );
     }
     if (
       config.timeout !== undefined &&

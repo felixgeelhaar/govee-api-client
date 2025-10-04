@@ -114,13 +114,42 @@ describe('GoveeClient Integration Tests', () => {
   });
 
   describe('constructor validation', () => {
-    it('should throw error for invalid configuration', () => {
+    it('should throw error for missing API key', () => {
       expect(() => new GoveeClient({ apiKey: '' }))
-        .toThrow('API key is required and must be a non-empty string');
+        .toThrow('API key is required. Provide it via config.apiKey or set the GOVEE_API_KEY environment variable.');
     });
 
     it('should create client with valid configuration', () => {
       expect(() => new GoveeClient({ apiKey: 'test-key' })).not.toThrow();
+    });
+
+    it('should use environment variable when no apiKey provided', () => {
+      // Set up environment variable
+      const originalEnv = process.env.GOVEE_API_KEY;
+      process.env.GOVEE_API_KEY = 'env-api-key';
+
+      expect(() => new GoveeClient()).not.toThrow();
+
+      // Clean up
+      if (originalEnv === undefined) {
+        delete process.env.GOVEE_API_KEY;
+      } else {
+        process.env.GOVEE_API_KEY = originalEnv;
+      }
+    });
+
+    it('should throw error when neither config nor env var provided', () => {
+      // Ensure env var is not set
+      const originalEnv = process.env.GOVEE_API_KEY;
+      delete process.env.GOVEE_API_KEY;
+
+      expect(() => new GoveeClient())
+        .toThrow('API key is required. Provide it via config.apiKey or set the GOVEE_API_KEY environment variable.');
+
+      // Restore
+      if (originalEnv !== undefined) {
+        process.env.GOVEE_API_KEY = originalEnv;
+      }
     });
   });
 

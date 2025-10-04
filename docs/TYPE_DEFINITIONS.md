@@ -22,7 +22,7 @@ Main configuration interface for initializing the GoveeClient.
 
 ```typescript
 interface GoveeClientConfig {
-  apiKey: string; // Required: Govee API key
+  apiKey?: string; // Optional: Govee API key (uses GOVEE_API_KEY env var if not provided)
   timeout?: number; // Optional: Request timeout in milliseconds (default: 30000)
   rateLimit?: number; // Optional: Max requests per minute (default: 95)
   logger?: Logger; // Optional: Pino logger instance
@@ -31,6 +31,22 @@ interface GoveeClientConfig {
 }
 
 type RetryPolicyType = 'development' | 'testing' | 'production' | 'custom' | RetryPolicy;
+```
+
+**API Key Resolution:**
+
+- If `apiKey` is provided in config, it will be used
+- Otherwise, the client reads from the `GOVEE_API_KEY` environment variable
+- If neither is available, an error is thrown with a helpful message
+
+**Example:**
+
+```typescript
+// Uses GOVEE_API_KEY environment variable
+const client = new GoveeClient();
+
+// Explicit API key (overrides environment variable)
+const client = new GoveeClient({ apiKey: 'your-key-here' });
 ```
 
 ### GoveeControlServiceConfig

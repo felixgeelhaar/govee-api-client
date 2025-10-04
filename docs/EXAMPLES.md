@@ -17,14 +17,25 @@ This document provides comprehensive examples for using the Govee API Client lib
 
 ## Basic Setup
 
+### Environment Variable Configuration
+
+The recommended approach is to use environment variables for the API key:
+
+```bash
+# Set environment variable
+export GOVEE_API_KEY=your-govee-api-key-here
+
+# Or use a .env file (with dotenv package)
+echo "GOVEE_API_KEY=your-govee-api-key-here" > .env
+```
+
 ### Simple Client Initialization
 
 ```typescript
 import { GoveeClient } from '@felixgeelhaar/govee-api-client';
 
-const client = new GoveeClient({
-  apiKey: 'your-govee-api-key-here',
-});
+// Uses GOVEE_API_KEY environment variable automatically
+const client = new GoveeClient();
 
 // Test connection
 try {
@@ -42,7 +53,7 @@ import { GoveeClient } from '@felixgeelhaar/govee-api-client';
 import pino from 'pino';
 
 const client = new GoveeClient({
-  apiKey: process.env.GOVEE_API_KEY!,
+  // apiKey uses GOVEE_API_KEY environment variable by default
   timeout: 30000, // 30 second timeout
   rateLimit: 90, // 90 requests per minute (conservative)
   logger: pino({
@@ -55,6 +66,16 @@ const client = new GoveeClient({
   }),
   enableRetries: true, // Enable retry logic
   retryPolicy: 'production', // Production retry settings
+});
+```
+
+### Explicit API Key (Not Recommended)
+
+For testing or special cases, you can provide the API key explicitly:
+
+```typescript
+const client = new GoveeClient({
+  apiKey: 'your-govee-api-key-here', // Overrides environment variable
 });
 ```
 

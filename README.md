@@ -36,10 +36,11 @@ import {
   ColorTemperature,
 } from '@felixgeelhaar/govee-api-client';
 
-// Initialize the client
-const client = new GoveeClient({
-  apiKey: 'your-govee-api-key',
-});
+// Initialize the client (uses GOVEE_API_KEY environment variable)
+const client = new GoveeClient();
+
+// Or provide API key explicitly
+// const client = new GoveeClient({ apiKey: 'your-govee-api-key' });
 
 // Get all devices
 const devices = await client.getDevices();
@@ -61,12 +62,41 @@ if (livingRoomLight) {
 
 ## Configuration
 
+### API Key
+
+The client reads the API key from the `GOVEE_API_KEY` environment variable by default:
+
+```bash
+# Set environment variable
+export GOVEE_API_KEY=your-govee-api-key
+
+# Or use a .env file
+echo "GOVEE_API_KEY=your-govee-api-key" > .env
+```
+
+```typescript
+import { GoveeClient } from '@felixgeelhaar/govee-api-client';
+
+// Uses GOVEE_API_KEY environment variable automatically
+const client = new GoveeClient();
+```
+
+You can also provide the API key explicitly (not recommended for production):
+
+```typescript
+const client = new GoveeClient({
+  apiKey: 'your-govee-api-key', // Explicit API key (overrides environment variable)
+});
+```
+
+### Full Configuration
+
 ```typescript
 import pino from 'pino';
 import { GoveeClient, RetryPolicy } from '@felixgeelhaar/govee-api-client';
 
 const client = new GoveeClient({
-  apiKey: 'your-govee-api-key',
+  // apiKey is optional - uses GOVEE_API_KEY environment variable by default
   timeout: 30000, // Request timeout in milliseconds (default: 30000)
   rateLimit: 95, // Requests per minute (default: 95, with 5 buffer under Govee's limit)
   logger: pino({ level: 'info' }), // Optional logger (silent by default)

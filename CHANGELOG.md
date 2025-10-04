@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-10-04
+
+### ✅ Added
+
+#### Environment Variable Support for API Key
+
+- **GOVEE_API_KEY environment variable**: API key can now be provided via environment variable instead of hardcoded configuration
+  - `apiKey` parameter in `GoveeClientConfig` is now optional
+  - Automatically reads from `process.env.GOVEE_API_KEY` if not provided in config
+  - Explicit config value takes precedence over environment variable
+  - Improved error message indicates both configuration options
+
+### 🛡️ Enhanced
+
+- **Developer experience**: Simplified client initialization for common use cases
+- **Security**: Reduced need to hardcode API keys in source code
+- **Configuration flexibility**: Supports both explicit configuration and environment variables
+
+### 📚 Documentation
+
+- **README**: Added comprehensive API Key configuration section with environment variable examples
+- **EXAMPLES**: Updated Quick Start with environment variable usage
+- **TYPE_DEFINITIONS**: Updated `GoveeClientConfig` to reflect optional `apiKey` parameter
+
+### 🧪 Testing
+
+- **New tests**: Added test coverage for environment variable functionality
+- **Updated tests**: Fixed test expectations for new error messages
+
+### 🔧 Technical Details
+
+```typescript
+// Before: API key was required in config
+const client = new GoveeClient({
+  apiKey: 'your-govee-api-key',
+});
+
+// After: API key can come from environment variable
+export GOVEE_API_KEY=your-govee-api-key
+const client = new GoveeClient(); // Uses GOVEE_API_KEY automatically
+```
+
+### ⚠️ Note
+
+This is a **patch version bump** (2.1.0 → 2.1.1) because:
+
+- Enhancement to existing feature (API key configuration)
+- 100% backward compatible - existing code with explicit `apiKey` continues to work
+- No breaking changes to public API
+
 ## [2.1.0] - 2025-10-04
 
 ### ✅ Added
