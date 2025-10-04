@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-10-04
+
+### ✅ Added
+
+#### Runtime API Response Validation
+
+- **Zod-based validation**: All API responses are now validated at runtime using Zod schemas
+  - `GoveeDevicesResponseSchema` - Validates device list responses
+  - `GoveeStateResponseSchema` - Validates device state responses
+  - `GoveeCommandResponseSchema` - Validates command responses
+- **ValidationError class**: New error type for handling malformed API responses
+  - `getValidationDetails()` - Returns structured validation error information
+  - `getValidationSummary()` - Returns formatted summary string for logging
+  - `zodError` - Access to underlying Zod validation error
+  - `rawData` - Access to the raw API response that failed validation
+- **Exported schemas**: Zod schemas and response types now exported for advanced usage
+  - `GoveeDevicesResponse`, `GoveeStateResponse`, `GoveeCommandResponse` types
+  - Enables custom validation scenarios and schema composition
+
+### 🛡️ Enhanced
+
+- **Production safety**: Protection against unexpected or malformed API responses
+- **Error messages**: Detailed validation errors with field paths and received values
+- **Type safety**: Runtime validation ensures data matches TypeScript types
+- **Developer experience**: Better debugging with structured validation error details
+
+### 📚 Documentation
+
+- **README**: Added Runtime Validation section with examples
+- **EXAMPLES**: New comprehensive "Runtime Validation & Error Recovery" section
+- **TYPE_DEFINITIONS**: New "Validation Types" section documenting schemas and types
+- **Error handling examples**: Updated with ValidationError usage patterns
+
+### 🔧 Technical Details
+
+All three repository methods now include runtime validation:
+
+```typescript
+// Before: Type-safe but no runtime validation
+const response = await this.httpClient.get<GoveeDevicesResponse>('/devices');
+const apiResponse = response.data;
+
+// After: Runtime validation with Zod
+const response = await this.httpClient.get('/devices');
+const validationResult = GoveeDevicesResponseSchema.safeParse(response.data);
+if (!validationResult.success) {
+  throw ValidationError.fromZodError(validationResult.error, response.data);
+}
+const apiResponse = validationResult.data;
+```
+
+### ⚠️ Note
+
+This is a **minor version bump** (2.0.1 → 2.1.0) because:
+
+- New features added without breaking existing functionality
+- Validation is transparent - existing code continues to work
+- ValidationError is a new error type that may be thrown for malformed responses
+- Exported schemas are additive - no changes to existing exports
+
 ## [2.0.1] - 2025-07-29
 
 ### 🐛 Critical Bug Fixes

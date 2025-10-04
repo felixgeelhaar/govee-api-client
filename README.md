@@ -11,6 +11,7 @@ An enterprise-grade TypeScript client library for the Govee Developer REST API. 
 
 - 🎯 **Type-Safe**: Full TypeScript support with comprehensive type definitions
 - 🏗️ **Domain-Driven Design**: Clean architecture following DDD principles
+- ✅ **Runtime Validation**: Zod-based API response validation for production safety
 - ⚡ **Rate Limiting**: High-performance sliding window rate limiter with burst capability
 - 🔄 **Retry Logic**: Enterprise-grade retry with exponential backoff, jitter, and circuit breaker
 - 🛡️ **Error Handling**: Comprehensive error hierarchy with specific error types
@@ -168,12 +169,26 @@ import {
   InvalidApiKeyError,
   RateLimitError,
   NetworkError,
+  ValidationError,
 } from '@felixgeelhaar/govee-api-client';
 
 try {
   await client.getDevices();
 } catch (error) {
-  if (error instanceof InvalidApiKeyError) {
+  if (error instanceof ValidationError) {
+    // API returned malformed data that failed validation
+    console.log('Validation error:', error.message);
+
+    // Get detailed validation errors
+    const details = error.getValidationDetails();
+    details.forEach(detail => {
+      console.log(`  ${detail.path}: ${detail.message}`);
+      console.log(`  Received: ${JSON.stringify(detail.received)}`);
+    });
+
+    // Or get a summary string for logging
+    console.log('Summary:', error.getValidationSummary());
+  } else if (error instanceof InvalidApiKeyError) {
     console.log('API key is invalid or expired');
     console.log(error.getRecommendation());
   } else if (error instanceof RateLimitError) {
@@ -189,6 +204,33 @@ try {
       console.log('This error can be retried');
     }
   }
+}
+```
+
+### Runtime Validation
+
+All API responses are validated at runtime using Zod schemas to ensure data integrity:
+
+- **Automatic**: All API calls are validated transparently
+- **Type-safe**: Catches malformed responses before they reach your code
+- **Detailed errors**: `ValidationError` provides specific information about what failed
+- **Production-ready**: Protects against unexpected API changes
+
+If you need custom validation, the Zod schemas are exported:
+
+```typescript
+import {
+  GoveeDevicesResponseSchema,
+  GoveeStateResponseSchema,
+  GoveeCommandResponseSchema,
+} from '@felixgeelhaar/govee-api-client';
+
+// Use for custom validation scenarios
+const result = GoveeDevicesResponseSchema.safeParse(rawApiData);
+if (result.success) {
+  console.log('Valid data:', result.data);
+} else {
+  console.log('Validation errors:', result.error);
 }
 ```
 

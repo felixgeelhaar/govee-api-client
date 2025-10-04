@@ -29,6 +29,7 @@ export {
   InvalidApiKeyError,
   RateLimitError,
   NetworkError,
+  ValidationError,
 } from './errors';
 
 // Services and repositories (for advanced usage)
@@ -46,3 +47,13 @@ export {
   type CircuitBreakerConfig,
   type RetryMetrics,
 } from './infrastructure/retry';
+
+// Validation schemas (for advanced usage)
+export {
+  GoveeDevicesResponseSchema,
+  GoveeStateResponseSchema,
+  GoveeCommandResponseSchema,
+  type GoveeDevicesResponse,
+  type GoveeStateResponse,
+  type GoveeCommandResponse,
+} from './infrastructure/response-schemas';

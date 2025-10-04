@@ -10,6 +10,7 @@ This document provides comprehensive examples for using the Govee API Client lib
 - [Color Management](#color-management)
 - [State Management](#state-management)
 - [Error Handling](#error-handling)
+- [Runtime Validation & Error Recovery](#runtime-validation--error-recovery)
 - [Rate Limiting & Monitoring](#rate-limiting--monitoring)
 - [Retry Configuration](#retry-configuration)
 - [Advanced Usage](#advanced-usage)
@@ -393,10 +394,17 @@ async function comprehensiveErrorHandling() {
       }
     } else if (error instanceof ValidationError) {
       console.error('✅ Validation Error:', error.message);
-      if (error.field) {
-        console.log(`📍 Field: ${error.field}`);
-        console.log(`💥 Value: ${error.value}`);
-      }
+      console.log('📋 Validation Details:');
+
+      // Get detailed validation errors
+      const details = error.getValidationDetails();
+      details.forEach(detail => {
+        console.log(`  📍 ${detail.path}: ${detail.message}`);
+        console.log(`  💥 Received: ${JSON.stringify(detail.received)}`);
+      });
+
+      // Or use summary for quick logging
+      console.log('Summary:', error.getValidationSummary());
     } else {
       console.error('❓ Unknown Error:', error);
     }
@@ -433,6 +441,179 @@ async function retryPattern(operation: () => Promise<void>, maxRetries = 3) {
 
       // Not retryable or max retries reached
       throw error;
+    }
+  }
+}
+```
+
+## Runtime Validation & Error Recovery
+
+### Understanding Validation Errors
+
+All API responses are automatically validated using Zod schemas. If the Govee API returns malformed data, a `ValidationError` is thrown with detailed information about what failed validation.
+
+```typescript
+import { ValidationError } from '@felixgeelhaar/govee-api-client';
+
+async function handleValidationErrors() {
+  try {
+    const devices = await client.getDevices();
+    console.log(`Found ${devices.length} devices`);
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      console.error('API returned invalid data');
+
+      // Get structured validation errors
+      const validationDetails = error.getValidationDetails();
+
+      validationDetails.forEach(({ path, message, received }) => {
+        console.log(`Field "${path}" failed validation:`);
+        console.log(`  Issue: ${message}`);
+        console.log(`  Received value: ${JSON.stringify(received)}`);
+      });
+
+      // Log the complete Zod error for debugging
+      console.log('Zod Error:', error.zodError);
+
+      // Log the raw API response for investigation
+      console.log('Raw Data:', error.rawData);
+    }
+  }
+}
+```
+
+### Custom Validation with Exported Schemas
+
+For advanced use cases, you can access the Zod schemas directly:
+
+```typescript
+import {
+  GoveeDevicesResponseSchema,
+  GoveeStateResponseSchema,
+  GoveeCommandResponseSchema,
+  type GoveeDevicesResponse,
+} from '@felixgeelhaar/govee-api-client';
+
+async function customValidation() {
+  // Example: Validate data from a cache or external source
+  const cachedData: unknown = await getCachedDevices();
+
+  const validationResult = GoveeDevicesResponseSchema.safeParse(cachedData);
+
+  if (validationResult.success) {
+    // Data is valid and typed
+    const response: GoveeDevicesResponse = validationResult.data;
+    console.log(`Cached data is valid: ${response.data.length} devices`);
+  } else {
+    // Handle validation failure
+    console.error('Cached data is invalid:', validationResult.error);
+    // Fetch fresh data from API
+    const freshDevices = await client.getDevices();
+    await cacheDevices(freshDevices);
+  }
+}
+```
+
+### Graceful Degradation
+
+Implement graceful degradation when validation fails:
+
+```typescript
+async function robustDeviceFetch() {
+  try {
+    // Try to get devices normally
+    return await client.getDevices();
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      console.warn('API response validation failed, using fallback');
+
+      // Log for investigation
+      console.error('Validation error details:', error.getValidationSummary());
+
+      // Return empty array or cached data as fallback
+      const cachedDevices = await getCachedDevices();
+      if (cachedDevices && cachedDevices.length > 0) {
+        console.log('Using cached devices as fallback');
+        return cachedDevices;
+      }
+
+      console.log('No cache available, returning empty array');
+      return [];
+    }
+
+    // Re-throw other errors
+    throw error;
+  }
+}
+```
+
+### Validation Error Logging for Debugging
+
+Create detailed logs for troubleshooting validation issues:
+
+```typescript
+import pino from 'pino';
+
+const logger = pino();
+
+async function logValidationErrors() {
+  try {
+    const devices = await client.getDevices();
+    return devices;
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      // Structured logging with all validation details
+      logger.error(
+        {
+          err: error,
+          validationSummary: error.getValidationSummary(),
+          validationDetails: error.getValidationDetails(),
+          zodIssues: error.zodError.issues,
+          rawData: error.rawData,
+        },
+        'API response validation failed'
+      );
+
+      // Send to error tracking service
+      await sendToErrorTracker({
+        type: 'validation_error',
+        message: error.message,
+        details: error.getValidationDetails(),
+        stack: error.stack,
+      });
+    }
+
+    throw error;
+  }
+}
+```
+
+### Testing Validation Behavior
+
+Test your error handling for validation failures:
+
+```typescript
+import { ValidationError } from '@felixgeelhaar/govee-api-client';
+import { z } from 'zod';
+
+// Simulate validation error for testing
+function simulateValidationError() {
+  const mockData = { invalid: 'data' };
+  const validationError = z.object({ valid: z.string() }).safeParse(mockData);
+
+  if (!validationError.success) {
+    throw ValidationError.fromZodError(validationError.error, mockData);
+  }
+}
+
+// Test your error handling
+async function testErrorHandling() {
+  try {
+    simulateValidationError();
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      console.log('✅ ValidationError handled correctly');
+      console.log('Details:', error.getValidationDetails());
     }
   }
 }

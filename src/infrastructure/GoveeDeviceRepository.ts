@@ -11,7 +11,18 @@ import {
 } from '../domain/entities/DeviceState';
 import { Command } from '../domain/entities/Command';
 import { ColorRgb, ColorTemperature, Brightness } from '../domain/value-objects';
-import { GoveeApiError, InvalidApiKeyError, RateLimitError, NetworkError } from '../errors';
+import {
+  GoveeApiError,
+  InvalidApiKeyError,
+  RateLimitError,
+  NetworkError,
+  ValidationError,
+} from '../errors';
+import {
+  GoveeDevicesResponseSchema,
+  GoveeStateResponseSchema,
+  GoveeCommandResponseSchema,
+} from './response-schemas';
 
 interface GoveeApiConfig {
   apiKey: string;
@@ -207,10 +218,20 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     this.logger?.info('Fetching all devices');
 
     try {
-      const response = await this.httpClient.get<GoveeDevicesResponse>(
-        '/router/api/v1/user/devices'
-      );
-      const apiResponse = response.data;
+      const response = await this.httpClient.get('/router/api/v1/user/devices');
+
+      // Validate response with Zod
+      const validationResult = GoveeDevicesResponseSchema.safeParse(response.data);
+
+      if (!validationResult.success) {
+        this.logger?.error(
+          { zodError: validationResult.error, rawData: response.data },
+          'API response validation failed'
+        );
+        throw ValidationError.fromZodError(validationResult.error, response.data);
+      }
+
+      const apiResponse = validationResult.data;
 
       if (apiResponse.code !== 200) {
         throw new GoveeApiError(
@@ -276,7 +297,12 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         })
         .map(
           device =>
-            new GoveeDevice(device.device, device.sku, device.deviceName, device.capabilities)
+            new GoveeDevice(
+              device.device!,
+              device.sku!,
+              device.deviceName!,
+              device.capabilities! as GoveeCapability[]
+            )
         );
 
       const totalDevicesFromApi = apiResponse.data.length;
@@ -311,11 +337,20 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         },
       };
 
-      const response = await this.httpClient.post<GoveeStateResponse>(
-        '/router/api/v1/device/state',
-        requestBody
-      );
-      const apiResponse = response.data;
+      const response = await this.httpClient.post('/router/api/v1/device/state', requestBody);
+
+      // Validate response with Zod
+      const validationResult = GoveeStateResponseSchema.safeParse(response.data);
+
+      if (!validationResult.success) {
+        this.logger?.error(
+          { zodError: validationResult.error, rawData: response.data },
+          'Device state response validation failed'
+        );
+        throw ValidationError.fromZodError(validationResult.error, response.data);
+      }
+
+      const apiResponse = validationResult.data;
 
       if (apiResponse.code !== 200) {
         throw new GoveeApiError(
@@ -358,11 +393,20 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     };
 
     try {
-      const response = await this.httpClient.post<GoveeCommandResponse>(
-        '/router/api/v1/device/control',
-        requestBody
-      );
-      const apiResponse = response.data;
+      const response = await this.httpClient.post('/router/api/v1/device/control', requestBody);
+
+      // Validate response with Zod
+      const validationResult = GoveeCommandResponseSchema.safeParse(response.data);
+
+      if (!validationResult.success) {
+        this.logger?.error(
+          { zodError: validationResult.error, rawData: response.data },
+          'Command response validation failed'
+        );
+        throw ValidationError.fromZodError(validationResult.error, response.data);
+      }
+
+      const apiResponse = validationResult.data;
 
       if (apiResponse.code !== 200) {
         throw new GoveeApiError(

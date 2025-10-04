@@ -10,6 +10,7 @@ This document provides comprehensive type definitions for the Govee API Client l
 - [Command Types](#command-types)
 - [State Types](#state-types)
 - [Error Types](#error-types)
+- [Validation Types](#validation-types)
 - [Retry & Rate Limiting Types](#retry--rate-limiting-types)
 - [Utility Types](#utility-types)
 
@@ -329,12 +330,15 @@ class NetworkError extends GoveeApiClientError {
 }
 
 class ValidationError extends GoveeApiClientError {
-  readonly errorType = 'ValidationError';
-  readonly field?: string;
-  readonly value?: unknown;
+  readonly code = 'VALIDATION_ERROR';
+  readonly zodError: ZodError;
+  readonly rawData: unknown;
 
-  constructor(message: string, field?: string, value?: unknown);
-  isRetryable(): false;
+  constructor(message: string, zodError: ZodError, rawData: unknown);
+
+  static fromZodError(zodError: ZodError, rawData: unknown): ValidationError;
+  getValidationDetails(): Array<{ path: string; message: string; received: unknown }>;
+  getValidationSummary(): string;
 }
 ```
 
@@ -348,6 +352,173 @@ function isInvalidApiKeyError(error: unknown): error is InvalidApiKeyError;
 function isRateLimitError(error: unknown): error is RateLimitError;
 function isNetworkError(error: unknown): error is NetworkError;
 function isValidationError(error: unknown): error is ValidationError;
+```
+
+## Validation Types
+
+### Zod Schemas
+
+Exported Zod schemas for runtime API response validation.
+
+```typescript
+import { z } from 'zod';
+
+// Device capability schema
+const GoveeCapabilitySchema: z.ZodType;
+
+// Individual device response schema
+const GoveeDeviceResponseSchema: z.ZodType;
+
+// Full devices API response schema
+const GoveeDevicesResponseSchema: z.ZodObject<{
+  code: z.ZodNumber;
+  message: z.ZodString;
+  data: z.ZodArray<typeof GoveeDeviceResponseSchema>;
+}>;
+
+// Device state capability schema
+const GoveeStateCapabilitySchema: z.ZodObject<{
+  type: z.ZodString;
+  instance: z.ZodString;
+  state: z.ZodObject<{ value: z.ZodUnknown }>;
+}>;
+
+// Device state API response schema
+const GoveeStateResponseSchema: z.ZodObject<{
+  code: z.ZodNumber;
+  message: z.ZodString;
+  data: z.ZodObject<{
+    device: z.ZodString;
+    sku: z.ZodString;
+    capabilities: z.ZodArray<typeof GoveeStateCapabilitySchema>;
+  }>;
+}>;
+
+// Command API response schema
+const GoveeCommandResponseSchema: z.ZodObject<{
+  code: z.ZodNumber;
+  message: z.ZodString;
+  data: z.ZodOptional<z.ZodUnknown>;
+}>;
+```
+
+### Response Types
+
+TypeScript types inferred from Zod schemas.
+
+```typescript
+// Type inferred from GoveeDevicesResponseSchema
+type GoveeDevicesResponse = {
+  code: number;
+  message: string;
+  data: Array<{
+    device?: string | null;
+    sku?: string | null;
+    deviceName?: string | null;
+    capabilities?: Array<{
+      type?: string | null;
+      instance?: string | null;
+      parameters?: {
+        dataType: string;
+        options?: Array<{
+          name: string;
+          value: unknown;
+        }>;
+      };
+    }> | null;
+  }>;
+};
+
+// Type inferred from GoveeStateResponseSchema
+type GoveeStateResponse = {
+  code: number;
+  message: string;
+  data: {
+    device: string;
+    sku: string;
+    capabilities: Array<{
+      type: string;
+      instance: string;
+      state: {
+        value: unknown;
+      };
+    }>;
+  };
+};
+
+// Type inferred from GoveeCommandResponseSchema
+type GoveeCommandResponse = {
+  code: number;
+  message: string;
+  data?: unknown;
+};
+```
+
+### Using Validation Schemas
+
+Examples of using exported schemas for custom validation:
+
+```typescript
+import {
+  GoveeDevicesResponseSchema,
+  GoveeStateResponseSchema,
+  type GoveeDevicesResponse,
+} from '@felixgeelhaar/govee-api-client';
+
+// Validate unknown data
+function validateDevicesResponse(data: unknown): GoveeDevicesResponse {
+  return GoveeDevicesResponseSchema.parse(data); // Throws on invalid data
+}
+
+// Safe validation without throwing
+function safeValidate(data: unknown) {
+  const result = GoveeDevicesResponseSchema.safeParse(data);
+
+  if (result.success) {
+    const validData: GoveeDevicesResponse = result.data;
+    return validData;
+  } else {
+    console.error('Validation failed:', result.error);
+    return null;
+  }
+}
+
+// Custom schema composition
+import { z } from 'zod';
+
+const ExtendedDeviceSchema = GoveeDevicesResponseSchema.extend({
+  metadata: z.object({
+    fetchedAt: z.date(),
+    cacheKey: z.string(),
+  }),
+});
+```
+
+### ValidationError Details
+
+Structure of validation error details returned by `getValidationDetails()`:
+
+```typescript
+interface ValidationDetail {
+  path: string; // JSON path to the field that failed (e.g., "data.0.deviceName")
+  message: string; // Human-readable error message
+  received: unknown; // The actual value that failed validation
+}
+
+// Example usage
+try {
+  await client.getDevices();
+} catch (error) {
+  if (error instanceof ValidationError) {
+    const details: ValidationDetail[] = error.getValidationDetails();
+
+    details.forEach(({ path, message, received }) => {
+      console.log(`Field "${path}" is invalid`);
+      console.log(`Error: ${message}`);
+      console.log(`Got: ${JSON.stringify(received)}`);
+    });
+  }
+}
 ```
 
 ## Retry & Rate Limiting Types
