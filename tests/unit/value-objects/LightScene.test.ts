@@ -159,6 +159,34 @@ describe('LightScene', () => {
       expect(aurora.id).toBe(3857);
       expect(aurora.paramId).toBe(4284);
     });
+
+    it('should create Candlelight scene', () => {
+      const candlelight = LightScene.candlelight();
+      expect(candlelight.name).toBe('Candlelight');
+      expect(candlelight.id).toBe(3867);
+      expect(candlelight.paramId).toBe(4294);
+    });
+
+    it('should create Nightlight scene', () => {
+      const nightlight = LightScene.nightlight();
+      expect(nightlight.name).toBe('Nightlight');
+      expect(nightlight.id).toBe(3868);
+      expect(nightlight.paramId).toBe(4295);
+    });
+
+    it('should create Romantic scene', () => {
+      const romantic = LightScene.romantic();
+      expect(romantic.name).toBe('Romantic');
+      expect(romantic.id).toBe(3869);
+      expect(romantic.paramId).toBe(4296);
+    });
+
+    it('should create Blinking scene', () => {
+      const blinking = LightScene.blinking();
+      expect(blinking.name).toBe('Blinking');
+      expect(blinking.id).toBe(3870);
+      expect(blinking.paramId).toBe(4297);
+    });
   });
 
   describe('immutability', () => {

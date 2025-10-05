@@ -154,4 +154,20 @@ export class LightScene {
   static waterfall(): LightScene {
     return new LightScene(3866, 4293, 'Waterfall');
   }
+
+  static candlelight(): LightScene {
+    return new LightScene(3867, 4294, 'Candlelight');
+  }
+
+  static nightlight(): LightScene {
+    return new LightScene(3868, 4295, 'Nightlight');
+  }
+
+  static romantic(): LightScene {
+    return new LightScene(3869, 4296, 'Romantic');
+  }
+
+  static blinking(): LightScene {
+    return new LightScene(3870, 4297, 'Blinking');
+  }
 }

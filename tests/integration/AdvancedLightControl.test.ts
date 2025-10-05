@@ -30,6 +30,18 @@ describe('Advanced Light Control Integration Tests', () => {
 
       const aurora = LightScene.aurora();
       expect(aurora.name).toBe('Aurora');
+
+      const candlelight = LightScene.candlelight();
+      expect(candlelight.name).toBe('Candlelight');
+
+      const nightlight = LightScene.nightlight();
+      expect(nightlight.name).toBe('Nightlight');
+
+      const romantic = LightScene.romantic();
+      expect(romantic.name).toBe('Romantic');
+
+      const blinking = LightScene.blinking();
+      expect(blinking.name).toBe('Blinking');
     });
 
     it('should create custom light scenes', () => {

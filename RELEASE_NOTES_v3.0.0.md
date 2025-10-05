@@ -24,11 +24,25 @@ await client.setLightScene(deviceId, model, LightScene.rainbow());
 await client.setLightScene(deviceId, model, LightScene.aurora());
 ```
 
-**4 built-in scene factory methods:**
+**18 built-in scene factory methods:**
 - `LightScene.sunrise()` - Warm sunrise effect
 - `LightScene.sunset()` - Relaxing sunset colors
-- `LightScene.rainbow()` - Full spectrum rainbow
+- `LightScene.sunsetGlow()` - Sunset glow ambiance
+- `LightScene.spring()` - Fresh spring atmosphere
 - `LightScene.aurora()` - Northern lights effect
+- `LightScene.rainbow()` - Full spectrum rainbow
+- `LightScene.forest()` - Tranquil forest scene
+- `LightScene.ocean()` - Ocean waves effect
+- `LightScene.snowing()` - Gentle snowfall
+- `LightScene.springWind()` - Spring breeze
+- `LightScene.cloudy()` - Cloudy day atmosphere
+- `LightScene.firefly()` - Firefly illumination
+- `LightScene.fire()` - Flickering flames
+- `LightScene.waterfall()` - Cascading water effect
+- `LightScene.candlelight()` - Flickering candle simulation
+- `LightScene.nightlight()` - Soft nightlight mode
+- `LightScene.romantic()` - Romantic ambiance
+- `LightScene.blinking()` - Dynamic blinking patterns
 
 #### 🌈 RGB IC Segment Control
 
