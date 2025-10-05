@@ -216,10 +216,16 @@ export class GoveeDevice {
       capabilities.push({ type: 'devices.capabilities.dynamic_scene', instance: 'lightScene' });
     }
     if (obj.supportedCmds.includes('segmentedColorRgb')) {
-      capabilities.push({ type: 'devices.capabilities.segment_color_setting', instance: 'segmentedColorRgb' });
+      capabilities.push({
+        type: 'devices.capabilities.segment_color_setting',
+        instance: 'segmentedColorRgb',
+      });
     }
     if (obj.supportedCmds.includes('segmentedBrightness')) {
-      capabilities.push({ type: 'devices.capabilities.segment_color_setting', instance: 'segmentedBrightness' });
+      capabilities.push({
+        type: 'devices.capabilities.segment_color_setting',
+        instance: 'segmentedBrightness',
+      });
     }
     if (obj.supportedCmds.includes('musicMode')) {
       capabilities.push({ type: 'devices.capabilities.music_setting', instance: 'musicMode' });

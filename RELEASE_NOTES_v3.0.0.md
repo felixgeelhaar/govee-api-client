@@ -24,15 +24,11 @@ await client.setLightScene(deviceId, model, LightScene.rainbow());
 await client.setLightScene(deviceId, model, LightScene.aurora());
 ```
 
-**8 built-in scene factory methods:**
+**4 built-in scene factory methods:**
 - `LightScene.sunrise()` - Warm sunrise effect
 - `LightScene.sunset()` - Relaxing sunset colors
 - `LightScene.rainbow()` - Full spectrum rainbow
 - `LightScene.aurora()` - Northern lights effect
-- `LightScene.candlelight()` - Flickering candle simulation
-- `LightScene.nightlight()` - Soft nightlight mode
-- `LightScene.romantic()` - Romantic ambiance
-- `LightScene.blinking()` - Dynamic blinking patterns
 
 #### 🌈 RGB IC Segment Control
 
@@ -106,7 +102,7 @@ await client.setPresetScene(deviceId, model, 'cozy');
 - ✅ **3 New Value Objects**: `LightScene`, `SegmentColor`, `MusicMode`
 - ✅ **6 New Command Classes**: Full support for all advanced control types
 - ✅ **9 New Client Methods**: Simple, intuitive API for all features
-- ✅ **68 New Tests**: Comprehensive test coverage (548 total tests passing)
+- ✅ **68 New Tests**: Comprehensive test coverage (572 total tests passing)
 - ✅ **4 Example Scripts**: Ready-to-run demonstrations
 - ✅ **Full Documentation**: Updated README, API reference, and examples
 
@@ -164,10 +160,10 @@ To use the new features, simply:
 
 ### 📊 Test Coverage
 
-- **548 tests passing** ✅
-- **78.79% overall coverage**
-- **94.58% value object coverage**
-- **22 test files**
+- **572 tests passing** ✅
+- **73.02% overall coverage**
+- **95.07% value object coverage**
+- **23 test files**
 - **0 failing tests**
 
 ### 🙏 Acknowledgments

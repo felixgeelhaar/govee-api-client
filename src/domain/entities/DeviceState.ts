@@ -1,4 +1,11 @@
-import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from '../value-objects';
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+  LightScene,
+  SegmentColor,
+  MusicMode,
+} from '../value-objects';
 
 export interface PowerState {
   value: 'on' | 'off';

@@ -3,7 +3,14 @@ import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepos
 import { GoveeDevice } from '../domain/entities/GoveeDevice';
 import { DeviceState } from '../domain/entities/DeviceState';
 import { Command, CommandFactory } from '../domain/entities/Command';
-import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from '../domain/value-objects';
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+  LightScene,
+  SegmentColor,
+  MusicMode,
+} from '../domain/value-objects';
 import { SlidingWindowRateLimiter, SlidingWindowRateLimiterConfig } from '../infrastructure';
 import {
   RetryableRepository,
@@ -247,10 +254,7 @@ export class GoveeControlService {
    * Sets a dynamic light scene on a device
    */
   async setLightScene(deviceId: string, model: string, scene: LightScene): Promise<void> {
-    this.logger?.info(
-      { deviceId, model, scene: scene.name },
-      'Setting device light scene'
-    );
+    this.logger?.info({ deviceId, model, scene: scene.name }, 'Setting device light scene');
     await this.sendCommand(deviceId, model, CommandFactory.lightScene(scene));
   }
 
@@ -276,7 +280,9 @@ export class GoveeControlService {
   async setSegmentBrightness(
     deviceId: string,
     model: string,
-    segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }
+    segments:
+      | Array<{ index: number; brightness: Brightness }>
+      | { index: number; brightness: Brightness }
   ): Promise<void> {
     const segmentArray = Array.isArray(segments) ? segments : [segments];
     this.logger?.info(
@@ -301,10 +307,7 @@ export class GoveeControlService {
    * Toggles nightlight mode on a device
    */
   async setNightlightToggle(deviceId: string, model: string, enabled: boolean): Promise<void> {
-    this.logger?.info(
-      { deviceId, model, enabled },
-      'Setting device nightlight toggle'
-    );
+    this.logger?.info({ deviceId, model, enabled }, 'Setting device nightlight toggle');
     await this.sendCommand(deviceId, model, CommandFactory.nightlightToggle(enabled));
   }
 
@@ -312,32 +315,31 @@ export class GoveeControlService {
    * Toggles gradient mode on a device
    */
   async setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<void> {
-    this.logger?.info(
-      { deviceId, model, enabled },
-      'Setting device gradient toggle'
-    );
+    this.logger?.info({ deviceId, model, enabled }, 'Setting device gradient toggle');
     await this.sendCommand(deviceId, model, CommandFactory.gradientToggle(enabled));
   }
 
   /**
    * Sets nightlight scene on a device
    */
-  async setNightlightScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
-    this.logger?.info(
-      { deviceId, model, sceneValue },
-      'Setting device nightlight scene'
-    );
+  async setNightlightScene(
+    deviceId: string,
+    model: string,
+    sceneValue: string | number
+  ): Promise<void> {
+    this.logger?.info({ deviceId, model, sceneValue }, 'Setting device nightlight scene');
     await this.sendCommand(deviceId, model, CommandFactory.nightlightScene(sceneValue));
   }
 
   /**
    * Sets preset scene on a device
    */
-  async setPresetScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
-    this.logger?.info(
-      { deviceId, model, sceneValue },
-      'Setting device preset scene'
-    );
+  async setPresetScene(
+    deviceId: string,
+    model: string,
+    sceneValue: string | number
+  ): Promise<void> {
+    this.logger?.info({ deviceId, model, sceneValue }, 'Setting device preset scene');
     await this.sendCommand(deviceId, model, CommandFactory.presetScene(sceneValue));
   }
 

@@ -32,7 +32,14 @@ export {
 } from './domain/entities';
 
 // Value objects
-export { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from './domain/value-objects';
+export {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+  LightScene,
+  SegmentColor,
+  MusicMode,
+} from './domain/value-objects';
 
 // Error classes
 export {

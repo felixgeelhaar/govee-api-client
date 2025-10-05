@@ -1,4 +1,11 @@
-import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from '../value-objects';
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+  LightScene,
+  SegmentColor,
+  MusicMode,
+} from '../value-objects';
 
 export abstract class Command {
   abstract readonly name: string;
@@ -133,7 +140,10 @@ export class SegmentColorRgbCommand extends Command {
     return Object.freeze([...this._segments]);
   }
 
-  toObject(): { name: string; value: Array<{ segment: number; rgb: { r: number; g: number; b: number } }> } {
+  toObject(): {
+    name: string;
+    value: Array<{ segment: number; rgb: { r: number; g: number; b: number } }>;
+  } {
     return { name: this.name, value: this.value };
   }
 }
@@ -142,7 +152,11 @@ export class SegmentBrightnessCommand extends Command {
   readonly name = 'segmentedBrightness';
   private readonly _segments: Array<{ index: number; brightness: Brightness }>;
 
-  constructor(segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }) {
+  constructor(
+    segments:
+      | Array<{ index: number; brightness: Brightness }>
+      | { index: number; brightness: Brightness }
+  ) {
     super();
     this._segments = Array.isArray(segments) ? segments : [segments];
   }
@@ -260,7 +274,11 @@ export class CommandFactory {
     return new SegmentColorRgbCommand(segments);
   }
 
-  static segmentBrightness(segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }): SegmentBrightnessCommand {
+  static segmentBrightness(
+    segments:
+      | Array<{ index: number; brightness: Brightness }>
+      | { index: number; brightness: Brightness }
+  ): SegmentBrightnessCommand {
     return new SegmentBrightnessCommand(segments);
   }
 
@@ -330,8 +348,8 @@ export class CommandFactory {
 
       case 'segmentedColorRgb':
         if (Array.isArray(obj.value)) {
-          const segments = obj.value.map((seg: any) =>
-            new SegmentColor(seg.segment, ColorRgb.fromObject(seg.rgb))
+          const segments = obj.value.map(
+            (seg: any) => new SegmentColor(seg.segment, ColorRgb.fromObject(seg.rgb))
           );
           return new SegmentColorRgbCommand(segments);
         }

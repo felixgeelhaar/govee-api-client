@@ -11,7 +11,14 @@ import {
   BrightnessState,
 } from '../domain/entities/DeviceState';
 import { Command } from '../domain/entities/Command';
-import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from '../domain/value-objects';
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+  LightScene,
+  SegmentColor,
+  MusicMode,
+} from '../domain/value-objects';
 import {
   GoveeApiError,
   InvalidApiKeyError,
@@ -469,14 +476,15 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       for (const capability of apiResponse.payload.capabilities) {
         if (capability.type.includes('dynamic_scene') && capability.instance === 'lightScene') {
           for (const option of capability.parameters.options) {
-            scenes.push(
-              new LightScene(option.value.id, option.value.paramId, option.name)
-            );
+            scenes.push(new LightScene(option.value.id, option.value.paramId, option.name));
           }
         }
       }
 
-      this.logger?.info({ deviceId, sku, sceneCount: scenes.length }, 'Successfully fetched dynamic scenes');
+      this.logger?.info(
+        { deviceId, sku, sceneCount: scenes.length },
+        'Successfully fetched dynamic scenes'
+      );
       return scenes;
     } catch (error) {
       this.logger?.error(error, 'Failed to fetch dynamic scenes');
@@ -579,7 +587,10 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         } else if (capability.instance === 'colorTemperatureK') {
           result.colorTem = { value: new ColorTemperature(capability.state.value as number) };
         }
-      } else if (capability.type.includes('dynamic_scene') && capability.instance === 'lightScene') {
+      } else if (
+        capability.type.includes('dynamic_scene') &&
+        capability.instance === 'lightScene'
+      ) {
         const sceneValue = capability.state.value as { id: number; paramId: number };
         result.lightScene = {
           value: new LightScene(sceneValue.id, sceneValue.paramId, 'Current Scene'),
@@ -591,9 +602,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
             rgb: { r: number; g: number; b: number };
           }>;
           result.segmentedColorRgb = {
-            value: segments.map(
-              seg => new SegmentColor(seg.segment, ColorRgb.fromObject(seg.rgb))
-            ),
+            value: segments.map(seg => new SegmentColor(seg.segment, ColorRgb.fromObject(seg.rgb))),
           };
         } else if (capability.instance === 'segmentedBrightness') {
           const segments = capability.state.value as Array<{

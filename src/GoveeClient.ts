@@ -4,7 +4,14 @@ import { GoveeControlService } from './services/GoveeControlService';
 import { GoveeDevice } from './domain/entities/GoveeDevice';
 import { DeviceState } from './domain/entities/DeviceState';
 import { Command } from './domain/entities/Command';
-import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from './domain/value-objects';
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+  LightScene,
+  SegmentColor,
+  MusicMode,
+} from './domain/value-objects';
 import { RetryPolicy } from './infrastructure/retry';
 
 export interface GoveeClientConfig {
@@ -171,7 +178,9 @@ export class GoveeClient {
   async setSegmentBrightness(
     deviceId: string,
     model: string,
-    segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }
+    segments:
+      | Array<{ index: number; brightness: Brightness }>
+      | { index: number; brightness: Brightness }
   ): Promise<void> {
     return this.controlService.setSegmentBrightness(deviceId, model, segments);
   }
@@ -188,11 +197,19 @@ export class GoveeClient {
     return this.controlService.setGradientToggle(deviceId, model, enabled);
   }
 
-  async setNightlightScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
+  async setNightlightScene(
+    deviceId: string,
+    model: string,
+    sceneValue: string | number
+  ): Promise<void> {
     return this.controlService.setNightlightScene(deviceId, model, sceneValue);
   }
 
-  async setPresetScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
+  async setPresetScene(
+    deviceId: string,
+    model: string,
+    sceneValue: string | number
+  ): Promise<void> {
     return this.controlService.setPresetScene(deviceId, model, sceneValue);
   }
 

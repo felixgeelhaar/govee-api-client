@@ -93,7 +93,8 @@ export class MusicMode {
    * Returns a string representation of the MusicMode.
    */
   toString(): string {
-    const sensitivityStr = this._sensitivity !== undefined ? `, sensitivity=${this._sensitivity}` : '';
+    const sensitivityStr =
+      this._sensitivity !== undefined ? `, sensitivity=${this._sensitivity}` : '';
     return `MusicMode(modeId=${this._modeId}${sensitivityStr})`;
   }
 
