@@ -4,7 +4,7 @@ import { GoveeControlService } from './services/GoveeControlService';
 import { GoveeDevice } from './domain/entities/GoveeDevice';
 import { DeviceState } from './domain/entities/DeviceState';
 import { Command } from './domain/entities/Command';
-import { ColorRgb, ColorTemperature, Brightness } from './domain/value-objects';
+import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from './domain/value-objects';
 import { RetryPolicy } from './infrastructure/retry';
 
 export interface GoveeClientConfig {
@@ -150,6 +150,50 @@ export class GoveeClient {
     colorTemperature: ColorTemperature
   ): Promise<void> {
     return this.controlService.setColorTemperature(deviceId, model, colorTemperature);
+  }
+
+  async getDynamicScenes(deviceId: string, model: string): Promise<LightScene[]> {
+    return this.controlService.getDynamicScenes(deviceId, model);
+  }
+
+  async setLightScene(deviceId: string, model: string, scene: LightScene): Promise<void> {
+    return this.controlService.setLightScene(deviceId, model, scene);
+  }
+
+  async setSegmentColors(
+    deviceId: string,
+    model: string,
+    segments: SegmentColor | SegmentColor[]
+  ): Promise<void> {
+    return this.controlService.setSegmentColors(deviceId, model, segments);
+  }
+
+  async setSegmentBrightness(
+    deviceId: string,
+    model: string,
+    segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }
+  ): Promise<void> {
+    return this.controlService.setSegmentBrightness(deviceId, model, segments);
+  }
+
+  async setMusicMode(deviceId: string, model: string, musicMode: MusicMode): Promise<void> {
+    return this.controlService.setMusicMode(deviceId, model, musicMode);
+  }
+
+  async setNightlightToggle(deviceId: string, model: string, enabled: boolean): Promise<void> {
+    return this.controlService.setNightlightToggle(deviceId, model, enabled);
+  }
+
+  async setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<void> {
+    return this.controlService.setGradientToggle(deviceId, model, enabled);
+  }
+
+  async setNightlightScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
+    return this.controlService.setNightlightScene(deviceId, model, sceneValue);
+  }
+
+  async setPresetScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
+    return this.controlService.setPresetScene(deviceId, model, sceneValue);
   }
 
   // Convenience methods

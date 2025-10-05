@@ -149,6 +149,78 @@ await client.turnOnWithColor(deviceId, model, red, new Brightness(75));
 await client.turnOnWithColorTemperature(deviceId, model, coolWhite, new Brightness(100));
 ```
 
+### Advanced Light Control
+
+#### Dynamic Light Scenes
+
+```typescript
+import { LightScene } from '@felixgeelhaar/govee-api-client';
+
+// Get available dynamic scenes for a device
+const scenes = await client.getDynamicScenes(deviceId, model);
+console.log(`Available scenes: ${scenes.map(s => s.name).join(', ')}`);
+
+// Use built-in factory methods for common scenes
+await client.setLightScene(deviceId, model, LightScene.sunrise());
+await client.setLightScene(deviceId, model, LightScene.sunset());
+await client.setLightScene(deviceId, model, LightScene.rainbow());
+await client.setLightScene(deviceId, model, LightScene.aurora());
+
+// Or set a custom scene
+const customScene = new LightScene(3853, 4280, 'My Scene');
+await client.setLightScene(deviceId, model, customScene);
+```
+
+#### Segment Color Control (RGB IC Devices)
+
+```typescript
+import { SegmentColor, ColorRgb } from '@felixgeelhaar/govee-api-client';
+
+// Set color for individual segments
+const segment1 = new SegmentColor(0, new ColorRgb(255, 0, 0)); // Red
+const segment2 = new SegmentColor(1, new ColorRgb(0, 255, 0)); // Green
+const segment3 = new SegmentColor(2, new ColorRgb(0, 0, 255)); // Blue
+
+// Set multiple segments at once
+await client.setSegmentColors(deviceId, model, [segment1, segment2, segment3]);
+
+// Set brightness for individual segments
+await client.setSegmentBrightness(deviceId, model, [
+  { index: 0, brightness: new Brightness(100) },
+  { index: 1, brightness: new Brightness(75) },
+  { index: 2, brightness: new Brightness(50) },
+]);
+```
+
+#### Music Mode
+
+```typescript
+import { MusicMode } from '@felixgeelhaar/govee-api-client';
+
+// Set music mode with sensitivity
+const musicMode = new MusicMode(1, 75); // Mode 1, 75% sensitivity
+await client.setMusicMode(deviceId, model, musicMode);
+
+// Music mode without sensitivity (uses device default)
+const basicMode = new MusicMode(2);
+await client.setMusicMode(deviceId, model, basicMode);
+```
+
+#### Toggle and Mode Controls
+
+```typescript
+// Nightlight toggle
+await client.setNightlightToggle(deviceId, model, true); // Enable
+await client.setNightlightToggle(deviceId, model, false); // Disable
+
+// Gradient toggle
+await client.setGradientToggle(deviceId, model, true);
+
+// Preset scenes
+await client.setNightlightScene(deviceId, model, 1); // Scene ID 1
+await client.setPresetScene(deviceId, model, 'cozy'); // Named scene
+```
+
 ### Value Objects
 
 #### ColorRgb
@@ -187,6 +259,75 @@ const custom = new Brightness(85);
 
 console.log(bright.asPercent()); // 0.75
 console.log(custom.isDim()); // false
+```
+
+#### LightScene
+
+```typescript
+import { LightScene } from '@felixgeelhaar/govee-api-client';
+
+// Built-in factory methods for common dynamic scenes
+const sunrise = LightScene.sunrise();
+const sunset = LightScene.sunset();
+const rainbow = LightScene.rainbow();
+const aurora = LightScene.aurora();
+const candlelight = LightScene.candlelight();
+const nightlight = LightScene.nightlight();
+const romantic = LightScene.romantic();
+const blinking = LightScene.blinking();
+
+// Custom scene
+const custom = new LightScene(3853, 4280, 'My Custom Scene');
+
+// Scene properties
+console.log(sunrise.name); // "Sunrise"
+console.log(sunrise.id); // 3853
+console.log(sunrise.paramId); // 4280
+```
+
+#### SegmentColor
+
+```typescript
+import { SegmentColor, ColorRgb, Brightness } from '@felixgeelhaar/govee-api-client';
+
+// Color only for a segment
+const segment1 = new SegmentColor(0, new ColorRgb(255, 0, 0));
+
+// Color with brightness for a segment
+const segment2 = new SegmentColor(
+  1,
+  new ColorRgb(0, 255, 0),
+  new Brightness(75)
+);
+
+// Check if segment has brightness
+console.log(segment1.hasBrightness()); // false
+console.log(segment2.hasBrightness()); // true
+
+// Access segment properties
+console.log(segment2.index); // 1
+console.log(segment2.color.toHex()); // "#00ff00"
+console.log(segment2.brightness?.level); // 75
+```
+
+#### MusicMode
+
+```typescript
+import { MusicMode } from '@felixgeelhaar/govee-api-client';
+
+// Music mode with sensitivity (0-100)
+const mode1 = new MusicMode(1, 75);
+
+// Music mode without sensitivity
+const mode2 = new MusicMode(2);
+
+// Check if mode has sensitivity
+console.log(mode1.hasSensitivity()); // true
+console.log(mode2.hasSensitivity()); // false
+
+// Access properties
+console.log(mode1.modeId); // 1
+console.log(mode1.sensitivity); // 75
 ```
 
 ## Error Handling

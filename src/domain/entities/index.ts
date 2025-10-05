@@ -5,6 +5,12 @@ export {
   type ColorState,
   type ColorTemperatureState,
   type BrightnessState,
+  type LightSceneState,
+  type SegmentColorState,
+  type SegmentBrightnessState,
+  type MusicModeState,
+  type ToggleState,
+  type ModeState,
   type StateProperty,
 } from './DeviceState';
 export {
@@ -14,5 +20,11 @@ export {
   BrightnessCommand,
   ColorCommand,
   ColorTemperatureCommand,
+  LightSceneCommand,
+  SegmentColorRgbCommand,
+  SegmentBrightnessCommand,
+  MusicModeCommand,
+  ToggleCommand,
+  ModeCommand,
   CommandFactory,
 } from './Command';

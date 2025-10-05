@@ -1,6 +1,7 @@
 import { GoveeDevice } from '../entities/GoveeDevice';
 import { DeviceState } from '../entities/DeviceState';
 import { Command } from '../entities/Command';
+import { LightScene } from '../value-objects/LightScene';
 
 export interface IGoveeDeviceRepository {
   /**
@@ -17,4 +18,9 @@ export interface IGoveeDeviceRepository {
    * Sends a command to control a specific device
    */
   sendCommand(deviceId: string, sku: string, command: Command): Promise<void>;
+
+  /**
+   * Retrieves available dynamic light scenes for a specific device
+   */
+  findDynamicScenes(deviceId: string, sku: string): Promise<LightScene[]>;
 }

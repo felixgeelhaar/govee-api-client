@@ -48,6 +48,25 @@ class GoveeClient {
     colorTemperature: ColorTemperature
   ): Promise<void>;
 
+  // Advanced Light Control
+  getDynamicScenes(deviceId: string, model: string): Promise<LightScene[]>;
+  setLightScene(deviceId: string, model: string, scene: LightScene): Promise<void>;
+  setSegmentColors(
+    deviceId: string,
+    model: string,
+    segments: SegmentColor | SegmentColor[]
+  ): Promise<void>;
+  setSegmentBrightness(
+    deviceId: string,
+    model: string,
+    segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }
+  ): Promise<void>;
+  setMusicMode(deviceId: string, model: string, musicMode: MusicMode): Promise<void>;
+  setNightlightToggle(deviceId: string, model: string, enabled: boolean): Promise<void>;
+  setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<void>;
+  setNightlightScene(deviceId: string, model: string, sceneValue: string | number): Promise<void>;
+  setPresetScene(deviceId: string, model: string, sceneValue: string | number): Promise<void>;
+
   // Convenience Methods
   turnOnWithBrightness(deviceId: string, model: string, brightness: Brightness): Promise<void>;
   turnOnWithColor(
@@ -125,13 +144,31 @@ class DeviceState {
   readonly model: string;
   readonly properties: readonly StateProperty[];
 
+  // Basic state getters
   getPowerState(): 'on' | 'off' | undefined;
-  getBrightness(): number | undefined; // 0-100
-  getColor(): { r: number; g: number; b: number } | undefined;
-  getColorTemperature(): number | undefined; // Kelvin
+  getBrightness(): Brightness | undefined;
+  getColor(): ColorRgb | undefined;
+  getColorTemperature(): ColorTemperature | undefined;
+
+  // Advanced state getters
+  getLightScene(): LightScene | undefined;
+  getSegmentColors(): SegmentColor[] | undefined;
+  getSegmentBrightness(): Array<{ index: number; brightness: Brightness }> | undefined;
+  getMusicMode(): MusicMode | undefined;
+  getNightlightToggle(): boolean | undefined;
+  getGradientToggle(): boolean | undefined;
+  getNightlightScene(): string | number | undefined;
+  getPresetScene(): string | number | undefined;
+
+  // Status checks
   isOnline(): boolean;
-  hasProperty(type: string, instance: string): boolean;
-  getProperty(type: string, instance: string): StateProperty | undefined;
+  isPoweredOn(): boolean;
+  isPoweredOff(): boolean;
+  isOffline(): boolean;
+
+  // Property access
+  hasProperty(key: string): boolean;
+  getProperty<T extends StateProperty>(key: string): T | undefined;
 }
 ```
 
@@ -146,20 +183,44 @@ abstract class Command {
   abstract toApiFormat(): { name: string; value: unknown }
 }
 
-// Command types:
+// Basic command types:
 class PowerOnCommand extends Command
 class PowerOffCommand extends Command
 class BrightnessCommand extends Command
 class ColorCommand extends Command
 class ColorTemperatureCommand extends Command
 
+// Advanced command types:
+class LightSceneCommand extends Command
+class SegmentColorRgbCommand extends Command
+class SegmentBrightnessCommand extends Command
+class MusicModeCommand extends Command
+class ToggleCommand extends Command
+class ModeCommand extends Command
+
 // Command factory:
 class CommandFactory {
+  // Basic commands
   static powerOn(): PowerOnCommand
   static powerOff(): PowerOffCommand
   static brightness(brightness: Brightness): BrightnessCommand
   static color(color: ColorRgb): ColorCommand
   static colorTemperature(temp: ColorTemperature): ColorTemperatureCommand
+
+  // Advanced commands
+  static lightScene(scene: LightScene): LightSceneCommand
+  static segmentColorRgb(segments: SegmentColor | SegmentColor[]): SegmentColorRgbCommand
+  static segmentBrightness(segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }): SegmentBrightnessCommand
+  static musicMode(musicMode: MusicMode): MusicModeCommand
+  static toggle(instance: string, enabled: boolean): ToggleCommand
+  static nightlightToggle(enabled: boolean): ToggleCommand
+  static gradientToggle(enabled: boolean): ToggleCommand
+  static mode(instance: string, modeValue: string | number): ModeCommand
+  static nightlightScene(sceneValue: string | number): ModeCommand
+  static presetScene(sceneValue: string | number): ModeCommand
+
+  // Create from object
+  static fromObject(obj: { name: string; value: unknown }): Command
 }
 ```
 
@@ -231,6 +292,78 @@ class Brightness {
   static medium(): Brightness; // 50
   static bright(): Brightness; // 75
   static fromObject(obj: { level: number }): Brightness;
+}
+```
+
+### LightScene
+
+Represents a dynamic light scene with ID, paramId, and name.
+
+```typescript
+class LightScene {
+  constructor(id: number, paramId: number, name: string);
+
+  readonly id: number;
+  readonly paramId: number;
+  readonly name: string;
+
+  equals(other: LightScene): boolean;
+  toString(): string;
+  toApiValue(): { paramId: number; id: number };
+  toObject(): { id: number; paramId: number; name: string };
+
+  // Factory methods for common scenes
+  static sunrise(): LightScene;
+  static sunset(): LightScene;
+  static rainbow(): LightScene;
+  static aurora(): LightScene;
+  static candlelight(): LightScene;
+  static nightlight(): LightScene;
+  static romantic(): LightScene;
+  static blinking(): LightScene;
+  static fromObject(obj: { id: number; paramId: number; name: string }): LightScene;
+}
+```
+
+### SegmentColor
+
+Represents color (and optional brightness) for an individual LED segment in RGB IC devices.
+
+```typescript
+class SegmentColor {
+  constructor(index: number, color: ColorRgb, brightness?: Brightness);
+
+  readonly index: number; // Segment index (0-based)
+  readonly color: ColorRgb;
+  readonly brightness: Brightness | undefined;
+
+  equals(other: SegmentColor): boolean;
+  hasBrightness(): boolean;
+  toString(): string;
+  toObject(): { index: number; color: { r: number; g: number; b: number }; brightness?: { level: number } };
+
+  static fromObject(obj: { index: number; color: { r: number; g: number; b: number }; brightness?: { level: number } }): SegmentColor;
+}
+```
+
+### MusicMode
+
+Represents music-reactive lighting mode configuration.
+
+```typescript
+class MusicMode {
+  constructor(modeId: number, sensitivity?: number);
+
+  readonly modeId: number;
+  readonly sensitivity: number | undefined; // 0-100 (optional)
+
+  equals(other: MusicMode): boolean;
+  hasSensitivity(): boolean;
+  toString(): string;
+  toApiValue(): { modeId: number; sensitivity?: number };
+  toObject(): { modeId: number; sensitivity?: number };
+
+  static fromObject(obj: { modeId: number; sensitivity?: number }): MusicMode;
 }
 ```
 

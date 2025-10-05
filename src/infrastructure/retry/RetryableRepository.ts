@@ -3,6 +3,7 @@ import { IGoveeDeviceRepository } from '../../domain/repositories/IGoveeDeviceRe
 import { GoveeDevice } from '../../domain/entities/GoveeDevice';
 import { DeviceState } from '../../domain/entities/DeviceState';
 import { Command } from '../../domain/entities/Command';
+import { LightScene } from '../../domain/value-objects';
 import {
   RetryExecutor,
   RetryableRequest,
@@ -103,6 +104,25 @@ export class RetryableRepository implements IGoveeDeviceRepository {
         deviceId,
         sku,
         command: command.toObject(),
+        timestamp: new Date().toISOString(),
+      },
+    };
+
+    return this.retryExecutor.execute(request);
+  }
+
+  /**
+   * Finds dynamic scenes with retry logic
+   */
+  async findDynamicScenes(deviceId: string, sku: string): Promise<LightScene[]> {
+    const request: RetryableRequest<LightScene[]> = {
+      id: this.generateRequestId('findDynamicScenes'),
+      description: `Fetch dynamic scenes for device ${deviceId} (${sku})`,
+      execute: () => this.repository.findDynamicScenes(deviceId, sku),
+      context: {
+        operation: 'findDynamicScenes',
+        deviceId,
+        sku,
         timestamp: new Date().toISOString(),
       },
     };

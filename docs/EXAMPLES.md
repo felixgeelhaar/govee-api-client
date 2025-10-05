@@ -13,6 +13,7 @@ This document provides comprehensive examples for using the Govee API Client lib
 - [Runtime Validation & Error Recovery](#runtime-validation--error-recovery)
 - [Rate Limiting & Monitoring](#rate-limiting--monitoring)
 - [Retry Configuration](#retry-configuration)
+- [Advanced Light Control](#advanced-light-control)
 - [Advanced Usage](#advanced-usage)
 
 ## Basic Setup
@@ -741,6 +742,243 @@ const client = new GoveeClient({
   enableRetries: true,
   retryPolicy: customRetryPolicy,
 });
+```
+
+## Advanced Light Control
+
+### Dynamic Light Scenes
+
+```typescript
+import { LightScene } from '@felixgeelhaar/govee-api-client';
+
+async function setDynamicLightScenes(deviceId: string, model: string) {
+  try {
+    // Get available scenes for the device
+    const availableScenes = await client.getDynamicScenes(deviceId, model);
+    console.log('Available scenes:');
+    availableScenes.forEach(scene => {
+      console.log(`- ${scene.name} (ID: ${scene.id}, ParamID: ${scene.paramId})`);
+    });
+
+    // Use built-in factory methods for common scenes
+    await client.setLightScene(deviceId, model, LightScene.sunrise());
+    console.log('Set sunrise scene');
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    await client.setLightScene(deviceId, model, LightScene.rainbow());
+    console.log('Set rainbow scene');
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    await client.setLightScene(deviceId, model, LightScene.aurora());
+    console.log('Set aurora scene');
+
+    // Or use a custom scene from the available scenes list
+    if (availableScenes.length > 0) {
+      await client.setLightScene(deviceId, model, availableScenes[0]);
+      console.log(`Set custom scene: ${availableScenes[0].name}`);
+    }
+  } catch (error) {
+    console.error('Failed to set light scenes:', error.message);
+  }
+}
+
+// All available factory methods:
+// LightScene.sunrise()
+// LightScene.sunset()
+// LightScene.rainbow()
+// LightScene.aurora()
+// LightScene.candlelight()
+// LightScene.nightlight()
+// LightScene.romantic()
+// LightScene.blinking()
+```
+
+### RGB IC Segment Control
+
+```typescript
+import { SegmentColor, ColorRgb, Brightness } from '@felixgeelhaar/govee-api-client';
+
+async function controlSegmentColors(deviceId: string, model: string) {
+  try {
+    // Set rainbow effect across 6 segments
+    const rainbowSegments = [
+      new SegmentColor(0, new ColorRgb(255, 0, 0)),   // Red
+      new SegmentColor(1, new ColorRgb(255, 127, 0)), // Orange
+      new SegmentColor(2, new ColorRgb(255, 255, 0)), // Yellow
+      new SegmentColor(3, new ColorRgb(0, 255, 0)),   // Green
+      new SegmentColor(4, new ColorRgb(0, 0, 255)),   // Blue
+      new SegmentColor(5, new ColorRgb(75, 0, 130)),  // Indigo
+    ];
+
+    await client.setSegmentColors(deviceId, model, rainbowSegments);
+    console.log('Set rainbow effect on segments');
+
+    // Set individual segment brightness levels
+    await client.setSegmentBrightness(deviceId, model, [
+      { index: 0, brightness: new Brightness(100) },
+      { index: 1, brightness: new Brightness(90) },
+      { index: 2, brightness: new Brightness(80) },
+      { index: 3, brightness: new Brightness(70) },
+      { index: 4, brightness: new Brightness(60) },
+      { index: 5, brightness: new Brightness(50) },
+    ]);
+    console.log('Set gradient brightness on segments');
+
+    // Fade effect - gradually change brightness
+    for (let brightness = 100; brightness >= 20; brightness -= 10) {
+      await client.setSegmentBrightness(deviceId, model,
+        Array.from({ length: 6 }, (_, i) => ({
+          index: i,
+          brightness: new Brightness(brightness),
+        }))
+      );
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    console.log('Completed fade effect');
+  } catch (error) {
+    console.error('Failed to control segment colors:', error.message);
+  }
+}
+
+async function createChaseEffect(deviceId: string, model: string, segments: number = 10) {
+  const red = new ColorRgb(255, 0, 0);
+  const black = new ColorRgb(0, 0, 0);
+
+  for (let i = 0; i < segments * 2; i++) {
+    const segmentColors = Array.from({ length: segments }, (_, idx) => {
+      const isLit = idx === (i % segments);
+      return new SegmentColor(idx, isLit ? red : black);
+    });
+
+    await client.setSegmentColors(deviceId, model, segmentColors);
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  console.log('Completed chase effect');
+}
+```
+
+### Music Mode
+
+```typescript
+import { MusicMode } from '@felixgeelhaar/govee-api-client';
+
+async function setMusicReactiveMode(deviceId: string, model: string) {
+  try {
+    // Enable music mode with high sensitivity
+    const highSensitivity = new MusicMode(1, 90);
+    await client.setMusicMode(deviceId, model, highSensitivity);
+    console.log('Music mode enabled with 90% sensitivity');
+
+    // Wait for 10 seconds to see the effect
+    await new Promise(resolve => setTimeout(resolve, 10000));
+
+    // Change to medium sensitivity
+    const mediumSensitivity = new MusicMode(1, 50);
+    await client.setMusicMode(deviceId, model, mediumSensitivity);
+    console.log('Changed to 50% sensitivity');
+
+    // Music mode without explicit sensitivity (uses device default)
+    const defaultMode = new MusicMode(2);
+    await client.setMusicMode(deviceId, model, defaultMode);
+    console.log('Set music mode 2 with default sensitivity');
+  } catch (error) {
+    console.error('Failed to set music mode:', error.message);
+  }
+}
+```
+
+### Toggle and Mode Controls
+
+```typescript
+async function toggleAndModeControls(deviceId: string, model: string) {
+  try {
+    // Enable nightlight mode
+    await client.setNightlightToggle(deviceId, model, true);
+    console.log('Nightlight enabled');
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Set nightlight scene
+    await client.setNightlightScene(deviceId, model, 1);
+    console.log('Nightlight scene 1 selected');
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Disable nightlight
+    await client.setNightlightToggle(deviceId, model, false);
+    console.log('Nightlight disabled');
+
+    // Enable gradient effect
+    await client.setGradientToggle(deviceId, model, true);
+    console.log('Gradient effect enabled');
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Set a preset scene
+    await client.setPresetScene(deviceId, model, 'cozy');
+    console.log('Preset scene "cozy" applied');
+  } catch (error) {
+    console.error('Failed to set toggle/mode controls:', error.message);
+  }
+}
+```
+
+### Complete Lighting Sequence
+
+```typescript
+async function createComplexLightingSequence(deviceId: string, model: string) {
+  try {
+    console.log('Starting complex lighting sequence...');
+
+    // 1. Turn on with warm white
+    await client.turnOnWithColorTemperature(
+      deviceId,
+      model,
+      ColorTemperature.warmWhite(),
+      new Brightness(50)
+    );
+    console.log('1. Warm white at 50%');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // 2. Sunrise scene
+    await client.setLightScene(deviceId, model, LightScene.sunrise());
+    console.log('2. Sunrise scene');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // 3. Rainbow segment effect
+    const rainbowSegments = [
+      new SegmentColor(0, new ColorRgb(255, 0, 0)),
+      new SegmentColor(1, new ColorRgb(255, 127, 0)),
+      new SegmentColor(2, new ColorRgb(255, 255, 0)),
+      new SegmentColor(3, new ColorRgb(0, 255, 0)),
+      new SegmentColor(4, new ColorRgb(0, 0, 255)),
+      new SegmentColor(5, new ColorRgb(75, 0, 130)),
+    ];
+    await client.setSegmentColors(deviceId, model, rainbowSegments);
+    console.log('3. Rainbow segment effect');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // 4. Music reactive mode
+    await client.setMusicMode(deviceId, model, new MusicMode(1, 75));
+    console.log('4. Music reactive mode (75% sensitivity)');
+    await new Promise(resolve => setTimeout(resolve, 10000));
+
+    // 5. Sunset scene
+    await client.setLightScene(deviceId, model, LightScene.sunset());
+    console.log('5. Sunset scene');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // 6. Turn off
+    await client.turnOff(deviceId, model);
+    console.log('6. Turned off');
+
+    console.log('Lighting sequence completed!');
+  } catch (error) {
+    console.error('Lighting sequence failed:', error.message);
+  }
+}
 ```
 
 ## Advanced Usage

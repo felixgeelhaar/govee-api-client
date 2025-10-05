@@ -1,4 +1,4 @@
-import { ColorRgb, ColorTemperature, Brightness } from '../value-objects';
+import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from '../value-objects';
 
 export interface PowerState {
   value: 'on' | 'off';
@@ -16,7 +16,41 @@ export interface BrightnessState {
   value: Brightness;
 }
 
-export type StateProperty = PowerState | ColorState | ColorTemperatureState | BrightnessState;
+export interface LightSceneState {
+  value: LightScene;
+}
+
+export interface SegmentColorState {
+  value: SegmentColor[];
+}
+
+export interface SegmentBrightnessState {
+  value: Array<{ index: number; brightness: Brightness }>;
+}
+
+export interface MusicModeState {
+  value: MusicMode;
+}
+
+export interface ToggleState {
+  value: boolean;
+}
+
+export interface ModeState {
+  value: string | number;
+}
+
+export type StateProperty =
+  | PowerState
+  | ColorState
+  | ColorTemperatureState
+  | BrightnessState
+  | LightSceneState
+  | SegmentColorState
+  | SegmentBrightnessState
+  | MusicModeState
+  | ToggleState
+  | ModeState;
 
 export class DeviceState {
   private readonly _deviceId: string;
@@ -93,6 +127,46 @@ export class DeviceState {
   getColorTemperature(): ColorTemperature | undefined {
     const colorTempState = this.getProperty<ColorTemperatureState>('colorTem');
     return colorTempState?.value;
+  }
+
+  getLightScene(): LightScene | undefined {
+    const sceneState = this.getProperty<LightSceneState>('lightScene');
+    return sceneState?.value;
+  }
+
+  getSegmentColors(): SegmentColor[] | undefined {
+    const segmentState = this.getProperty<SegmentColorState>('segmentedColorRgb');
+    return segmentState?.value;
+  }
+
+  getSegmentBrightness(): Array<{ index: number; brightness: Brightness }> | undefined {
+    const segmentState = this.getProperty<SegmentBrightnessState>('segmentedBrightness');
+    return segmentState?.value;
+  }
+
+  getMusicMode(): MusicMode | undefined {
+    const musicState = this.getProperty<MusicModeState>('musicMode');
+    return musicState?.value;
+  }
+
+  getNightlightToggle(): boolean | undefined {
+    const toggleState = this.getProperty<ToggleState>('nightlightToggle');
+    return toggleState?.value;
+  }
+
+  getGradientToggle(): boolean | undefined {
+    const toggleState = this.getProperty<ToggleState>('gradientToggle');
+    return toggleState?.value;
+  }
+
+  getNightlightScene(): string | number | undefined {
+    const modeState = this.getProperty<ModeState>('nightlightScene');
+    return modeState?.value;
+  }
+
+  getPresetScene(): string | number | undefined {
+    const modeState = this.getProperty<ModeState>('presetScene');
+    return modeState?.value;
   }
 
   isPoweredOn(): boolean {

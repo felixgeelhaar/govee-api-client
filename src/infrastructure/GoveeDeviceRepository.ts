@@ -4,13 +4,14 @@ import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepos
 import { GoveeDevice } from '../domain/entities/GoveeDevice';
 import {
   DeviceState,
+  StateProperty,
   PowerState,
   ColorState,
   ColorTemperatureState,
   BrightnessState,
 } from '../domain/entities/DeviceState';
 import { Command } from '../domain/entities/Command';
-import { ColorRgb, ColorTemperature, Brightness } from '../domain/value-objects';
+import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from '../domain/value-objects';
 import {
   GoveeApiError,
   InvalidApiKeyError,
@@ -22,6 +23,7 @@ import {
   GoveeDevicesResponseSchema,
   GoveeStateResponseSchema,
   GoveeCommandResponseSchema,
+  GoveeDynamicScenesResponseSchema,
 } from './response-schemas';
 
 interface GoveeApiConfig {
@@ -424,6 +426,64 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
   }
 
+  async findDynamicScenes(deviceId: string, sku: string): Promise<LightScene[]> {
+    this.validateDeviceParams(deviceId, sku);
+    this.logger?.info({ deviceId, sku }, 'Fetching dynamic light scenes');
+
+    try {
+      const requestBody = {
+        requestId: this.generateRequestId(),
+        payload: {
+          sku: sku,
+          device: deviceId,
+        },
+      };
+
+      const response = await this.httpClient.post('/router/api/v1/device/scenes', requestBody);
+
+      // Validate response with Zod
+      const validationResult = GoveeDynamicScenesResponseSchema.safeParse(response.data);
+
+      if (!validationResult.success) {
+        this.logger?.error(
+          { zodError: validationResult.error, rawData: response.data },
+          'Dynamic scenes response validation failed'
+        );
+        throw ValidationError.fromZodError(validationResult.error, response.data);
+      }
+
+      const apiResponse = validationResult.data;
+
+      if (apiResponse.code !== 200) {
+        throw new GoveeApiError(
+          `API returned error code ${apiResponse.code}: ${apiResponse.msg}`,
+          response.status,
+          apiResponse.code,
+          apiResponse.msg || 'Unknown error'
+        );
+      }
+
+      // Extract scenes from capabilities
+      const scenes: LightScene[] = [];
+
+      for (const capability of apiResponse.payload.capabilities) {
+        if (capability.type.includes('dynamic_scene') && capability.instance === 'lightScene') {
+          for (const option of capability.parameters.options) {
+            scenes.push(
+              new LightScene(option.value.id, option.value.paramId, option.name)
+            );
+          }
+        }
+      }
+
+      this.logger?.info({ deviceId, sku, sceneCount: scenes.length }, 'Successfully fetched dynamic scenes');
+      return scenes;
+    } catch (error) {
+      this.logger?.error(error, 'Failed to fetch dynamic scenes');
+      throw error;
+    }
+  }
+
   private validateDeviceParams(deviceId: string, sku: string): void {
     if (!deviceId || typeof deviceId !== 'string' || deviceId.trim().length === 0) {
       throw new Error('Device ID must be a non-empty string');
@@ -446,26 +506,48 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       brightness: 'devices.capabilities.range',
       color: 'devices.capabilities.color_setting',
       colorTem: 'devices.capabilities.color_setting',
+      lightScene: 'devices.capabilities.dynamic_scene',
+      segmentedColorRgb: 'devices.capabilities.segment_color_setting',
+      segmentedBrightness: 'devices.capabilities.segment_color_setting',
+      musicMode: 'devices.capabilities.music_setting',
+      nightlightToggle: 'devices.capabilities.toggle',
+      gradientToggle: 'devices.capabilities.toggle',
+      nightlightScene: 'devices.capabilities.mode',
+      presetScene: 'devices.capabilities.mode',
     };
 
-    // Map instances correctly according to Govee API v1 specification
+    // Map instances correctly according to Govee API specification
     let instance: string;
     let value: unknown;
 
     if (cmdObj.name === 'turn') {
-      // Power commands use 'powerSwitch' instance and numeric values
       instance = 'powerSwitch';
-      value = cmdObj.value === 'on' ? 1 : 0; // Convert string to number: on=1, off=0
+      value = cmdObj.value === 'on' ? 1 : 0;
     } else if (cmdObj.name === 'color') {
-      // Color commands use 'colorRgb' instance
       instance = 'colorRgb';
       value = cmdObj.value;
     } else if (cmdObj.name === 'colorTem') {
-      // Color temperature uses specific instance name
       instance = 'colorTemperatureK';
       value = cmdObj.value;
+    } else if (cmdObj.name === 'lightScene') {
+      instance = 'lightScene';
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'segmentedColorRgb') {
+      instance = 'segmentedColorRgb';
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'segmentedBrightness') {
+      instance = 'segmentedBrightness';
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'musicMode') {
+      instance = 'musicMode';
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'nightlightToggle' || cmdObj.name === 'gradientToggle') {
+      instance = cmdObj.name;
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'nightlightScene' || cmdObj.name === 'presetScene') {
+      instance = cmdObj.name;
+      value = cmdObj.value;
     } else {
-      // Other commands (brightness) use their name as instance
       instance = cmdObj.name;
       value = cmdObj.value;
     }
@@ -479,11 +561,8 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
 
   private mapCapabilitiesToStateProperties(
     capabilities: Array<{ type: string; instance: string; state: { value: unknown } }>
-  ): Record<string, PowerState | ColorState | ColorTemperatureState | BrightnessState> {
-    const result: Record<
-      string,
-      PowerState | ColorState | ColorTemperatureState | BrightnessState
-    > = {};
+  ): Record<string, StateProperty> {
+    const result: Record<string, StateProperty> = {};
 
     for (const capability of capabilities) {
       if (capability.type.includes('on_off')) {
@@ -499,6 +578,55 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
           };
         } else if (capability.instance === 'colorTemperatureK') {
           result.colorTem = { value: new ColorTemperature(capability.state.value as number) };
+        }
+      } else if (capability.type.includes('dynamic_scene') && capability.instance === 'lightScene') {
+        const sceneValue = capability.state.value as { id: number; paramId: number };
+        result.lightScene = {
+          value: new LightScene(sceneValue.id, sceneValue.paramId, 'Current Scene'),
+        };
+      } else if (capability.type.includes('segment_color_setting')) {
+        if (capability.instance === 'segmentedColorRgb') {
+          const segments = capability.state.value as Array<{
+            segment: number;
+            rgb: { r: number; g: number; b: number };
+          }>;
+          result.segmentedColorRgb = {
+            value: segments.map(
+              seg => new SegmentColor(seg.segment, ColorRgb.fromObject(seg.rgb))
+            ),
+          };
+        } else if (capability.instance === 'segmentedBrightness') {
+          const segments = capability.state.value as Array<{
+            segment: number;
+            brightness: number;
+          }>;
+          result.segmentedBrightness = {
+            value: segments.map(seg => ({
+              index: seg.segment,
+              brightness: new Brightness(seg.brightness),
+            })),
+          };
+        }
+      } else if (capability.type.includes('music_setting') && capability.instance === 'musicMode') {
+        const modeValue = capability.state.value as { modeId: number; sensitivity?: number };
+        result.musicMode = {
+          value: new MusicMode(modeValue.modeId, modeValue.sensitivity),
+        };
+      } else if (capability.type.includes('toggle')) {
+        if (capability.instance === 'nightlightToggle') {
+          result.nightlightToggle = {
+            value: capability.state.value === 1 || capability.state.value === true,
+          };
+        } else if (capability.instance === 'gradientToggle') {
+          result.gradientToggle = {
+            value: capability.state.value === 1 || capability.state.value === true,
+          };
+        }
+      } else if (capability.type.includes('mode')) {
+        if (capability.instance === 'nightlightScene') {
+          result.nightlightScene = { value: capability.state.value as string | number };
+        } else if (capability.instance === 'presetScene') {
+          result.presetScene = { value: capability.state.value as string | number };
         }
       }
     }

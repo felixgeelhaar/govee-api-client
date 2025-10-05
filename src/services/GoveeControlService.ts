@@ -3,7 +3,7 @@ import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepos
 import { GoveeDevice } from '../domain/entities/GoveeDevice';
 import { DeviceState } from '../domain/entities/DeviceState';
 import { Command, CommandFactory } from '../domain/entities/Command';
-import { ColorRgb, ColorTemperature, Brightness } from '../domain/value-objects';
+import { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from '../domain/value-objects';
 import { SlidingWindowRateLimiter, SlidingWindowRateLimiterConfig } from '../infrastructure';
 import {
   RetryableRepository,
@@ -227,6 +227,118 @@ export class GoveeControlService {
       'Setting device color temperature'
     );
     await this.sendCommand(deviceId, model, CommandFactory.colorTemperature(colorTemperature));
+  }
+
+  /**
+   * Retrieves available dynamic light scenes for a specific device
+   */
+  async getDynamicScenes(deviceId: string, model: string): Promise<LightScene[]> {
+    this.validateDeviceParams(deviceId, model);
+    this.logger?.info({ deviceId, model }, 'Getting dynamic light scenes');
+
+    return this.rateLimiter.execute(async () => {
+      const scenes = await this.repository.findDynamicScenes(deviceId, model);
+      this.logger?.info({ deviceId, model, sceneCount: scenes.length }, 'Retrieved dynamic scenes');
+      return scenes;
+    });
+  }
+
+  /**
+   * Sets a dynamic light scene on a device
+   */
+  async setLightScene(deviceId: string, model: string, scene: LightScene): Promise<void> {
+    this.logger?.info(
+      { deviceId, model, scene: scene.name },
+      'Setting device light scene'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.lightScene(scene));
+  }
+
+  /**
+   * Sets segment colors for RGB IC devices
+   */
+  async setSegmentColors(
+    deviceId: string,
+    model: string,
+    segments: SegmentColor | SegmentColor[]
+  ): Promise<void> {
+    const segmentArray = Array.isArray(segments) ? segments : [segments];
+    this.logger?.info(
+      { deviceId, model, segmentCount: segmentArray.length },
+      'Setting device segment colors'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.segmentColorRgb(segments));
+  }
+
+  /**
+   * Sets segment brightness for RGB IC devices
+   */
+  async setSegmentBrightness(
+    deviceId: string,
+    model: string,
+    segments: Array<{ index: number; brightness: Brightness }> | { index: number; brightness: Brightness }
+  ): Promise<void> {
+    const segmentArray = Array.isArray(segments) ? segments : [segments];
+    this.logger?.info(
+      { deviceId, model, segmentCount: segmentArray.length },
+      'Setting device segment brightness'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.segmentBrightness(segments));
+  }
+
+  /**
+   * Sets music mode on a device
+   */
+  async setMusicMode(deviceId: string, model: string, musicMode: MusicMode): Promise<void> {
+    this.logger?.info(
+      { deviceId, model, modeId: musicMode.modeId, sensitivity: musicMode.sensitivity },
+      'Setting device music mode'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.musicMode(musicMode));
+  }
+
+  /**
+   * Toggles nightlight mode on a device
+   */
+  async setNightlightToggle(deviceId: string, model: string, enabled: boolean): Promise<void> {
+    this.logger?.info(
+      { deviceId, model, enabled },
+      'Setting device nightlight toggle'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.nightlightToggle(enabled));
+  }
+
+  /**
+   * Toggles gradient mode on a device
+   */
+  async setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<void> {
+    this.logger?.info(
+      { deviceId, model, enabled },
+      'Setting device gradient toggle'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.gradientToggle(enabled));
+  }
+
+  /**
+   * Sets nightlight scene on a device
+   */
+  async setNightlightScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
+    this.logger?.info(
+      { deviceId, model, sceneValue },
+      'Setting device nightlight scene'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.nightlightScene(sceneValue));
+  }
+
+  /**
+   * Sets preset scene on a device
+   */
+  async setPresetScene(deviceId: string, model: string, sceneValue: string | number): Promise<void> {
+    this.logger?.info(
+      { deviceId, model, sceneValue },
+      'Setting device preset scene'
+    );
+    await this.sendCommand(deviceId, model, CommandFactory.presetScene(sceneValue));
   }
 
   /**

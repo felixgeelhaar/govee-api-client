@@ -11,16 +11,28 @@ export {
   BrightnessCommand,
   ColorCommand,
   ColorTemperatureCommand,
+  LightSceneCommand,
+  SegmentColorRgbCommand,
+  SegmentBrightnessCommand,
+  MusicModeCommand,
+  ToggleCommand,
+  ModeCommand,
   CommandFactory,
   type PowerState,
   type ColorState,
   type ColorTemperatureState,
   type BrightnessState,
+  type LightSceneState,
+  type SegmentColorState,
+  type SegmentBrightnessState,
+  type MusicModeState,
+  type ToggleState,
+  type ModeState,
   type StateProperty,
 } from './domain/entities';
 
 // Value objects
-export { ColorRgb, ColorTemperature, Brightness } from './domain/value-objects';
+export { ColorRgb, ColorTemperature, Brightness, LightScene, SegmentColor, MusicMode } from './domain/value-objects';
 
 // Error classes
 export {
@@ -53,7 +65,9 @@ export {
   GoveeDevicesResponseSchema,
   GoveeStateResponseSchema,
   GoveeCommandResponseSchema,
+  GoveeDynamicScenesResponseSchema,
   type GoveeDevicesResponse,
   type GoveeStateResponse,
   type GoveeCommandResponse,
+  type GoveeDynamicScenesResponse,
 } from './infrastructure/response-schemas';

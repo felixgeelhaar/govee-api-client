@@ -295,6 +295,92 @@ interface BrightnessObject {
 }
 ```
 
+### LightScene
+
+Represents a dynamic light scene with paramId and sceneId.
+
+```typescript
+class LightScene {
+  readonly id: number;
+  readonly paramId: number;
+  readonly name: string;
+
+  constructor(id: number, paramId: number, name: string);
+  equals(other: LightScene): boolean;
+  toString(): string;
+  toApiValue(): { paramId: number; id: number };
+  toObject(): LightSceneObject;
+
+  // Factory methods for common scenes
+  static sunrise(): LightScene;
+  static sunset(): LightScene;
+  static rainbow(): LightScene;
+  static aurora(): LightScene;
+  static candlelight(): LightScene;
+  static nightlight(): LightScene;
+  static romantic(): LightScene;
+  static blinking(): LightScene;
+  static fromObject(obj: LightSceneObject): LightScene;
+}
+
+interface LightSceneObject {
+  id: number;
+  paramId: number;
+  name: string;
+}
+```
+
+### SegmentColor
+
+Represents color (and optional brightness) for an individual LED segment in RGB IC devices.
+
+```typescript
+class SegmentColor {
+  readonly index: number; // Segment index (0-based)
+  readonly color: ColorRgb;
+  readonly brightness: Brightness | undefined;
+
+  constructor(index: number, color: ColorRgb, brightness?: Brightness);
+  equals(other: SegmentColor): boolean;
+  hasBrightness(): boolean;
+  toString(): string;
+  toObject(): SegmentColorObject;
+
+  static fromObject(obj: SegmentColorObject): SegmentColor;
+}
+
+interface SegmentColorObject {
+  index: number;
+  color: ColorRgbObject;
+  brightness?: BrightnessObject;
+}
+```
+
+### MusicMode
+
+Represents music-reactive lighting mode configuration.
+
+```typescript
+class MusicMode {
+  readonly modeId: number;
+  readonly sensitivity: number | undefined; // 0-100 (optional)
+
+  constructor(modeId: number, sensitivity?: number);
+  equals(other: MusicMode): boolean;
+  hasSensitivity(): boolean;
+  toString(): string;
+  toApiValue(): { modeId: number; sensitivity?: number };
+  toObject(): MusicModeObject;
+
+  static fromObject(obj: MusicModeObject): MusicMode;
+}
+
+interface MusicModeObject {
+  modeId: number;
+  sensitivity?: number;
+}
+```
+
 ## Error Types
 
 ### Error Hierarchy

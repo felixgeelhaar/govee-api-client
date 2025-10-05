@@ -93,6 +93,24 @@ export class GoveeDevice {
         if (capability.instance === 'colorRgb') commands.add('color');
         if (capability.instance === 'colorTemperatureK') commands.add('colorTem');
       }
+      if (capability.type.includes('dynamic_scene')) {
+        if (capability.instance === 'lightScene') commands.add('lightScene');
+      }
+      if (capability.type.includes('segment_color_setting')) {
+        if (capability.instance === 'segmentedColorRgb') commands.add('segmentedColorRgb');
+        if (capability.instance === 'segmentedBrightness') commands.add('segmentedBrightness');
+      }
+      if (capability.type.includes('music_setting')) {
+        if (capability.instance === 'musicMode') commands.add('musicMode');
+      }
+      if (capability.type.includes('toggle')) {
+        if (capability.instance === 'nightlightToggle') commands.add('nightlightToggle');
+        if (capability.instance === 'gradientToggle') commands.add('gradientToggle');
+      }
+      if (capability.type.includes('mode')) {
+        if (capability.instance === 'nightlightScene') commands.add('nightlightScene');
+        if (capability.instance === 'presetScene') commands.add('presetScene');
+      }
     }
 
     return Array.from(commands);
@@ -193,6 +211,30 @@ export class GoveeDevice {
         type: 'devices.capabilities.color_setting',
         instance: 'colorTemperatureK',
       });
+    }
+    if (obj.supportedCmds.includes('lightScene')) {
+      capabilities.push({ type: 'devices.capabilities.dynamic_scene', instance: 'lightScene' });
+    }
+    if (obj.supportedCmds.includes('segmentedColorRgb')) {
+      capabilities.push({ type: 'devices.capabilities.segment_color_setting', instance: 'segmentedColorRgb' });
+    }
+    if (obj.supportedCmds.includes('segmentedBrightness')) {
+      capabilities.push({ type: 'devices.capabilities.segment_color_setting', instance: 'segmentedBrightness' });
+    }
+    if (obj.supportedCmds.includes('musicMode')) {
+      capabilities.push({ type: 'devices.capabilities.music_setting', instance: 'musicMode' });
+    }
+    if (obj.supportedCmds.includes('nightlightToggle')) {
+      capabilities.push({ type: 'devices.capabilities.toggle', instance: 'nightlightToggle' });
+    }
+    if (obj.supportedCmds.includes('gradientToggle')) {
+      capabilities.push({ type: 'devices.capabilities.toggle', instance: 'gradientToggle' });
+    }
+    if (obj.supportedCmds.includes('nightlightScene')) {
+      capabilities.push({ type: 'devices.capabilities.mode', instance: 'nightlightScene' });
+    }
+    if (obj.supportedCmds.includes('presetScene')) {
+      capabilities.push({ type: 'devices.capabilities.mode', instance: 'presetScene' });
     }
 
     return new GoveeDevice(obj.deviceId, obj.model, obj.deviceName, capabilities);
