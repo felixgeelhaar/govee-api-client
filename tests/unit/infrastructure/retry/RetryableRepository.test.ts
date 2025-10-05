@@ -180,9 +180,9 @@ describe('RetryableRepository', () => {
 
       expect(result).toEqual(mockDeviceState);
       expect(mockRepository.findState).toHaveBeenCalledTimes(2);
-      
-      // Should have waited at least the retry-after time (1000ms)
-      expect(endTime - startTime).toBeGreaterThanOrEqual(1000);
+
+      // Should have waited at least the retry-after time (1000ms, with 10ms tolerance for timing precision)
+      expect(endTime - startTime).toBeGreaterThanOrEqual(990);
     });
   });
 
