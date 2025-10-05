@@ -633,7 +633,26 @@ MIT © [Felix Geelhaar]
 
 ## Contributing
 
-Contributions are welcome! Please ensure all tests pass and maintain the existing code style.
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Code of conduct
+- Development workflow
+- Code standards and architecture
+- Testing requirements
+- Commit guidelines
+- Pull request process
+
+For feature requests and discussions, visit our [GitHub Discussions](https://github.com/felixgeelhaar/govee-api-client/discussions).
+
+## Roadmap
+
+See our [Product Roadmap](ROADMAP.md) for planned features and enhancements, including:
+
+- **Short-term (1-3 months):** Additional scene factory methods, animation utilities, performance optimizations
+- **Medium-term (3-6 months):** Device discovery, advanced scheduling, real-time monitoring
+- **Long-term (6-12 months):** Cloud integration, UI components, AI/ML features, ecosystem integrations
+
+We welcome feedback and contributions for any roadmap items!
 
 ## API Documentation
 
