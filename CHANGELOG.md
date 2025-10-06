@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2025-10-06
+
+### Added
+
+- **4 Additional LightScene Factory Methods**: Expanded scene support with new built-in scenes
+  - `LightScene.candlelight()` - Flickering candle simulation
+  - `LightScene.nightlight()` - Soft nightlight mode
+  - `LightScene.romantic()` - Romantic ambiance
+  - `LightScene.blinking()` - Dynamic blinking patterns
+- **ROADMAP.md**: Comprehensive product roadmap covering short-term (1-3 months), medium-term (3-6 months), and long-term (6-12 months) enhancements
+- **CONTRIBUTING.md**: Detailed contribution guide including code of conduct, development workflow, code standards, testing requirements, and pull request process
+
+### Changed
+
+- **README.md**: Updated to reference new ROADMAP.md and CONTRIBUTING.md documentation
+- **Total LightScene factory methods**: Increased from 14 to 18 built-in scenes
+
+### Fixed
+
+- **Release workflow**: Fixed npm publish error by bumping version to 3.0.1
+
 ## [3.0.0] - 2025-10-05
 
 ### 🚀 Major Feature Release - Advanced Light Control
@@ -126,12 +147,12 @@ await client.setLightScene(deviceId, model, LightScene.sunrise());
 
 // RGB IC Segment Control
 const rainbow = [
-  new SegmentColor(0, new ColorRgb(255, 0, 0)),     // Red
-  new SegmentColor(1, new ColorRgb(255, 127, 0)),   // Orange
-  new SegmentColor(2, new ColorRgb(255, 255, 0)),   // Yellow
-  new SegmentColor(3, new ColorRgb(0, 255, 0)),     // Green
-  new SegmentColor(4, new ColorRgb(0, 0, 255)),     // Blue
-  new SegmentColor(5, new ColorRgb(75, 0, 130)),    // Indigo
+  new SegmentColor(0, new ColorRgb(255, 0, 0)), // Red
+  new SegmentColor(1, new ColorRgb(255, 127, 0)), // Orange
+  new SegmentColor(2, new ColorRgb(255, 255, 0)), // Yellow
+  new SegmentColor(3, new ColorRgb(0, 255, 0)), // Green
+  new SegmentColor(4, new ColorRgb(0, 0, 255)), // Blue
+  new SegmentColor(5, new ColorRgb(75, 0, 130)), // Indigo
 ];
 await client.setSegmentColors(deviceId, model, rainbow);
 
