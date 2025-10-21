@@ -294,11 +294,7 @@ import { SegmentColor, ColorRgb, Brightness } from '@felixgeelhaar/govee-api-cli
 const segment1 = new SegmentColor(0, new ColorRgb(255, 0, 0));
 
 // Color with brightness for a segment
-const segment2 = new SegmentColor(
-  1,
-  new ColorRgb(0, 255, 0),
-  new Brightness(75)
-);
+const segment2 = new SegmentColor(1, new ColorRgb(0, 255, 0), new Brightness(75));
 
 // Check if segment has brightness
 console.log(segment1.hasBrightness()); // false
@@ -656,4 +652,10 @@ We welcome feedback and contributions for any roadmap items!
 
 ## API Documentation
 
-For more information about the Govee Developer API, visit: https://govee-public.s3.amazonaws.com/developer-docs/GoveeDeveloperAPIReference.pdf
+For more information about the Govee Developer API, visit the official documentation:
+
+- **API Reference**: https://developer.govee.com/reference
+- **Getting Started**: https://developer.govee.com/docs
+- **Device Control**: https://developer.govee.com/reference/control-you-devices
+- **Device State**: https://developer.govee.com/reference/get-devices-status
+- **Get Devices**: https://developer.govee.com/reference/get-you-devices

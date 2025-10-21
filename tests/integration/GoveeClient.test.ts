@@ -2,7 +2,14 @@ import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { GoveeClient } from '../../src/GoveeClient';
-import { ColorRgb, ColorTemperature, Brightness } from '../../src/domain/value-objects';
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+  LightScene,
+  SegmentColor,
+  MusicMode
+} from '../../src/domain/value-objects';
 
 const BASE_URL = 'https://openapi.api.govee.com';
 
@@ -451,6 +458,198 @@ describe('GoveeClient Integration Tests', () => {
     });
   });
 
+  describe('advanced light control', () => {
+    it('should get dynamic scenes', async () => {
+      const mockScenesResponse = {
+        code: 200,
+        msg: 'success',
+        payload: {
+          sku: 'H6159',
+          device: 'living-room-123',
+          capabilities: [
+            {
+              type: 'devices.capabilities.dynamic_scene',
+              instance: 'lightScene',
+              parameters: {
+                dataType: 'ENUM',
+                options: [
+                  { name: 'Sunrise', value: { id: 3853, paramId: 4280 } },
+                  { name: 'Sunset', value: { id: 3854, paramId: 4281 } },
+                ]
+              }
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/scenes`, () => {
+          return HttpResponse.json(mockScenesResponse);
+        })
+      );
+
+      const scenes = await client.getDynamicScenes('living-room-123', 'H6159');
+
+      expect(scenes).toHaveLength(2);
+      expect(scenes[0].name).toBe('Sunrise');
+      expect(scenes[1].name).toBe('Sunset');
+    });
+
+    it('should set light scene', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const scene = LightScene.sunrise();
+      await client.setLightScene('living-room-123', 'H6159', scene);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.dynamic_scene');
+      expect(capturedCommand.capability.instance).toBe('lightScene');
+      expect(capturedCommand.capability.value).toEqual({ id: 3853, paramId: 4280 });
+    });
+
+    it('should set segment colors', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const segments = [
+        new SegmentColor(0, new ColorRgb(255, 0, 0)),
+        new SegmentColor(1, new ColorRgb(0, 255, 0)),
+      ];
+
+      await client.setSegmentColors('living-room-123', 'H6159', segments);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.segment_color_setting');
+      expect(capturedCommand.capability.instance).toBe('segmentedColorRgb');
+    });
+
+    it('should set segment brightness', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const segments = [
+        { index: 0, brightness: new Brightness(100) },
+        { index: 1, brightness: new Brightness(50) },
+      ];
+
+      await client.setSegmentBrightness('living-room-123', 'H6159', segments);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.segment_color_setting');
+      expect(capturedCommand.capability.instance).toBe('segmentedBrightness');
+    });
+
+    it('should set music mode', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const musicMode = new MusicMode(1, 75);
+      await client.setMusicMode('living-room-123', 'H6159', musicMode);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.music_setting');
+      expect(capturedCommand.capability.instance).toBe('musicMode');
+      expect(capturedCommand.capability.value).toEqual({ modeId: 1, sensitivity: 75 });
+    });
+
+    it('should set nightlight toggle', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      await client.setNightlightToggle('living-room-123', 'H6159', true);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.toggle');
+      expect(capturedCommand.capability.instance).toBe('nightlightToggle');
+      expect(capturedCommand.capability.value).toBe(1);
+    });
+
+    it('should set gradient toggle', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      await client.setGradientToggle('living-room-123', 'H6159', false);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.toggle');
+      expect(capturedCommand.capability.instance).toBe('gradientToggle');
+      expect(capturedCommand.capability.value).toBe(0);
+    });
+
+    it('should set nightlight scene', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      await client.setNightlightScene('living-room-123', 'H6159', 1);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.mode');
+      expect(capturedCommand.capability.instance).toBe('nightlightScene');
+      expect(capturedCommand.capability.value).toBe(1);
+    });
+
+    it('should set preset scene', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      await client.setPresetScene('living-room-123', 'H6159', 'cozy');
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.mode');
+      expect(capturedCommand.capability.instance).toBe('presetScene');
+      expect(capturedCommand.capability.value).toBe('cozy');
+    });
+  });
+
   describe('rate limiting', () => {
     it('should handle multiple rapid requests with rate limiting', async () => {
       let requestCount = 0;
@@ -559,6 +758,92 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommands).toHaveLength(2); // Two controllable devices
       expect(capturedCommands.every(cmd => cmd.capability.type === 'devices.capabilities.on_off' && cmd.capability.instance === 'powerSwitch' && cmd.capability.value === 0)).toBe(true);
+    });
+  });
+
+  describe('monitoring and metrics', () => {
+    it('should get rate limiter stats', () => {
+      const stats = client.getRateLimiterStats();
+
+      expect(stats).toBeDefined();
+      expect(stats).toHaveProperty('currentRequests');
+      expect(stats).toHaveProperty('maxRequests');
+      expect(stats).toHaveProperty('utilizationPercent');
+      expect(stats).toHaveProperty('queueSize');
+      expect(stats).toHaveProperty('canExecuteImmediately');
+    });
+
+    it('should get service stats', () => {
+      const stats = client.getServiceStats();
+
+      expect(stats).toBeDefined();
+      expect(stats).toHaveProperty('rateLimiter');
+      expect(stats).toHaveProperty('configuration');
+      expect(stats.configuration.rateLimit).toBeDefined();
+      expect(stats.configuration.enableRetries).toBeDefined();
+    });
+
+    it('should check if retry is enabled (default: false)', () => {
+      const isEnabled = client.isRetryEnabled();
+      expect(isEnabled).toBe(false);
+    });
+
+    it('should check if retry is enabled when configured', () => {
+      const clientWithRetry = new GoveeClient({
+        apiKey: 'test-api-key',
+        enableRetries: true,
+        retryPolicy: 'development'
+      });
+
+      const isEnabled = clientWithRetry.isRetryEnabled();
+      expect(isEnabled).toBe(true);
+    });
+
+    it('should get retry metrics when retries are disabled', () => {
+      const metrics = client.getRetryMetrics();
+      // When retries are disabled, metrics can be null or undefined
+      expect(metrics === null || metrics === undefined).toBe(true);
+    });
+
+    it('should get retry metrics when retries are enabled', () => {
+      const clientWithRetry = new GoveeClient({
+        apiKey: 'test-api-key',
+        enableRetries: true,
+        retryPolicy: 'development'
+      });
+
+      const metrics = clientWithRetry.getRetryMetrics();
+      expect(metrics).toBeDefined();
+      if (metrics) {
+        expect(metrics).toHaveProperty('totalAttempts');
+        expect(metrics).toHaveProperty('successfulRetries');
+        expect(metrics).toHaveProperty('failedRetries');
+        expect(metrics).toHaveProperty('circuitBreakerState');
+      }
+    });
+
+    it('should reset retry metrics when retries are enabled', () => {
+      const clientWithRetry = new GoveeClient({
+        apiKey: 'test-api-key',
+        enableRetries: true,
+        retryPolicy: 'development'
+      });
+
+      // Should not throw
+      expect(() => clientWithRetry.resetRetryMetrics()).not.toThrow();
+
+      const metricsAfterReset = clientWithRetry.getRetryMetrics();
+      expect(metricsAfterReset).toBeDefined();
+      if (metricsAfterReset) {
+        expect(metricsAfterReset.totalAttempts).toBe(0);
+        expect(metricsAfterReset.successfulRetries).toBe(0);
+        expect(metricsAfterReset.failedRetries).toBe(0);
+      }
+    });
+
+    it('should handle resetRetryMetrics when retries are disabled', () => {
+      // Should not throw even when retries are disabled
+      expect(() => client.resetRetryMetrics()).not.toThrow();
     });
   });
 });
