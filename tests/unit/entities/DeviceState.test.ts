@@ -74,6 +74,34 @@ describe('DeviceState', () => {
       expect(onState.isPoweredOn()).toBe(true);
       expect(offState.isPoweredOn()).toBe(false);
     });
+
+    it('should check if device is powered off', () => {
+      const onState = new DeviceState('device123', 'H6159', true, {
+        powerSwitch: { value: 'on' },
+      });
+      const offState = new DeviceState('device123', 'H6159', true, {
+        powerSwitch: { value: 'off' },
+      });
+
+      expect(onState.isPoweredOff()).toBe(false);
+      expect(offState.isPoweredOff()).toBe(true);
+    });
+
+    it('should check if device is online', () => {
+      const onlineState = new DeviceState('device123', 'H6159', true, {});
+      const offlineState = new DeviceState('device123', 'H6159', false, {});
+
+      expect(onlineState.isOnline()).toBe(true);
+      expect(offlineState.isOnline()).toBe(false);
+    });
+
+    it('should check if device is offline', () => {
+      const onlineState = new DeviceState('device123', 'H6159', true, {});
+      const offlineState = new DeviceState('device123', 'H6159', false, {});
+
+      expect(onlineState.isOffline()).toBe(false);
+      expect(offlineState.isOffline()).toBe(true);
+    });
   });
 
   describe('brightness accessors', () => {

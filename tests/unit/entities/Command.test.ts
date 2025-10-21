@@ -222,5 +222,25 @@ describe('CommandFactory', () => {
       expect(() => CommandFactory.fromObject({ name: 'color', value: null }))
         .toThrow('Invalid color command value: null');
     });
+
+    it('should throw error for invalid nightlightToggle command value', () => {
+      expect(() => CommandFactory.fromObject({ name: 'nightlightToggle', value: 'invalid' }))
+        .toThrow('Invalid toggle command value: invalid');
+    });
+
+    it('should throw error for invalid gradientToggle command value', () => {
+      expect(() => CommandFactory.fromObject({ name: 'gradientToggle', value: null }))
+        .toThrow('Invalid toggle command value: null');
+    });
+
+    it('should throw error for invalid nightlightScene command value', () => {
+      expect(() => CommandFactory.fromObject({ name: 'nightlightScene', value: null }))
+        .toThrow('Invalid mode command value: null');
+    });
+
+    it('should throw error for invalid presetScene command value', () => {
+      expect(() => CommandFactory.fromObject({ name: 'presetScene', value: { invalid: true } }))
+        .toThrow('Invalid mode command value: [object Object]');
+    });
   });
 });

@@ -187,6 +187,62 @@ describe('LightScene', () => {
       expect(blinking.id).toBe(3870);
       expect(blinking.paramId).toBe(4297);
     });
+
+    it('should create Forest scene', () => {
+      const forest = LightScene.forest();
+      expect(forest.name).toBe('Forest');
+      expect(forest.id).toBe(3859);
+      expect(forest.paramId).toBe(4286);
+    });
+
+    it('should create Ocean scene', () => {
+      const ocean = LightScene.ocean();
+      expect(ocean.name).toBe('Ocean');
+      expect(ocean.id).toBe(3860);
+      expect(ocean.paramId).toBe(4287);
+    });
+
+    it('should create Snowing scene', () => {
+      const snowing = LightScene.snowing();
+      expect(snowing.name).toBe('Snowing');
+      expect(snowing.id).toBe(3861);
+      expect(snowing.paramId).toBe(4288);
+    });
+
+    it('should create Spring Wind scene', () => {
+      const springWind = LightScene.springWind();
+      expect(springWind.name).toBe('Spring Wind');
+      expect(springWind.id).toBe(3862);
+      expect(springWind.paramId).toBe(4289);
+    });
+
+    it('should create Cloudy scene', () => {
+      const cloudy = LightScene.cloudy();
+      expect(cloudy.name).toBe('Cloudy');
+      expect(cloudy.id).toBe(3863);
+      expect(cloudy.paramId).toBe(4290);
+    });
+
+    it('should create Firefly scene', () => {
+      const firefly = LightScene.firefly();
+      expect(firefly.name).toBe('Firefly');
+      expect(firefly.id).toBe(3864);
+      expect(firefly.paramId).toBe(4291);
+    });
+
+    it('should create Fire scene', () => {
+      const fire = LightScene.fire();
+      expect(fire.name).toBe('Fire');
+      expect(fire.id).toBe(3865);
+      expect(fire.paramId).toBe(4292);
+    });
+
+    it('should create Waterfall scene', () => {
+      const waterfall = LightScene.waterfall();
+      expect(waterfall.name).toBe('Waterfall');
+      expect(waterfall.id).toBe(3866);
+      expect(waterfall.paramId).toBe(4293);
+    });
   });
 
   describe('immutability', () => {

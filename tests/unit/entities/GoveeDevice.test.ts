@@ -282,10 +282,138 @@ describe('GoveeDevice', () => {
       };
 
       const device = GoveeDevice.fromObject(obj);
-      
+
       // Modifying original object should not affect device
       obj.supportedCmds.push('newCommand');
       expect(device.supportedCmds).toEqual(originalSupportedCmds);
+    });
+
+    it('should map nightlightScene command to mode capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'nightlightScene']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('nightlightScene');
+      expect(device.supportsCommand('nightlightScene')).toBe(true);
+    });
+
+    it('should map presetScene command to mode capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'presetScene']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('presetScene');
+      expect(device.supportsCommand('presetScene')).toBe(true);
+    });
+
+    it('should map nightlightToggle command to toggle capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'nightlightToggle']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('nightlightToggle');
+      expect(device.supportsCommand('nightlightToggle')).toBe(true);
+    });
+
+    it('should map gradientToggle command to toggle capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'gradientToggle']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('gradientToggle');
+      expect(device.supportsCommand('gradientToggle')).toBe(true);
+    });
+
+    it('should map segmentedBrightness command to segment color setting capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'segmentedBrightness']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('segmentedBrightness');
+      expect(device.supportsCommand('segmentedBrightness')).toBe(true);
+    });
+
+    it('should map musicMode command to music setting capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'musicMode']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('musicMode');
+      expect(device.supportsCommand('musicMode')).toBe(true);
+    });
+
+    it('should map lightScene command to dynamic scene capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'lightScene']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('lightScene');
+      expect(device.supportsCommand('lightScene')).toBe(true);
+    });
+
+    it('should map segmentedColorRgb command to segment color setting capability', () => {
+      const obj = {
+        deviceId: validProps.deviceId,
+        model: validProps.sku,
+        deviceName: validProps.deviceName,
+        controllable: true,
+        retrievable: true,
+        supportedCmds: ['turn', 'segmentedColorRgb']
+      };
+
+      const device = GoveeDevice.fromObject(obj);
+
+      expect(device.supportedCmds).toContain('segmentedColorRgb');
+      expect(device.supportsCommand('segmentedColorRgb')).toBe(true);
     });
   });
 });
