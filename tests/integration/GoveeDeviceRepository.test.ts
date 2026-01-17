@@ -461,6 +461,93 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(gradientEnabled).toBe(true);
     });
 
+    it('should handle state with scene stage toggle capability (value 1)', async () => {
+      const sceneStageToggleStateResponse = {
+        code: 200,
+        message: 'Success',
+        data: {
+          device: 'curtain123',
+          sku: 'H70B1',
+          capabilities: [
+            {
+              type: 'devices.capabilities.toggle',
+              instance: 'sceneStageToggle',
+              state: { value: 1 }
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+          return HttpResponse.json(sceneStageToggleStateResponse);
+        })
+      );
+
+      const state = await repository.findState('curtain123', 'H70B1');
+      const sceneStageEnabled = state.getSceneStageToggle();
+
+      expect(sceneStageEnabled).toBe(true);
+    });
+
+    it('should handle state with scene stage toggle capability (value true)', async () => {
+      const sceneStageToggleStateResponse = {
+        code: 200,
+        message: 'Success',
+        data: {
+          device: 'curtain123',
+          sku: 'H70B1',
+          capabilities: [
+            {
+              type: 'devices.capabilities.toggle',
+              instance: 'sceneStageToggle',
+              state: { value: true }
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+          return HttpResponse.json(sceneStageToggleStateResponse);
+        })
+      );
+
+      const state = await repository.findState('curtain123', 'H70B1');
+      const sceneStageEnabled = state.getSceneStageToggle();
+
+      expect(sceneStageEnabled).toBe(true);
+    });
+
+    it('should handle state with scene stage toggle capability disabled', async () => {
+      const sceneStageToggleStateResponse = {
+        code: 200,
+        message: 'Success',
+        data: {
+          device: 'curtain123',
+          sku: 'H70B1',
+          capabilities: [
+            {
+              type: 'devices.capabilities.toggle',
+              instance: 'sceneStageToggle',
+              state: { value: 0 }
+            }
+          ]
+        }
+      };
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+          return HttpResponse.json(sceneStageToggleStateResponse);
+        })
+      );
+
+      const state = await repository.findState('curtain123', 'H70B1');
+      const sceneStageEnabled = state.getSceneStageToggle();
+
+      expect(sceneStageEnabled).toBe(false);
+    });
+
     it('should handle state with nightlight scene capability', async () => {
       const nightlightSceneStateResponse = {
         code: 200,

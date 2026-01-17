@@ -197,6 +197,20 @@ export class GoveeClient {
     return this.controlService.setGradientToggle(deviceId, model, enabled);
   }
 
+  /**
+   * Toggles scene stage mode on a device (e.g., Curtain Lights)
+   *
+   * Scene Stage enables synchronized lighting displays across devices
+   * with spatial awareness and coordination.
+   *
+   * @param deviceId - The device ID
+   * @param model - The device model/SKU
+   * @param enabled - Whether to enable or disable scene stage
+   */
+  async setSceneStageToggle(deviceId: string, model: string, enabled: boolean): Promise<void> {
+    return this.controlService.setSceneStageToggle(deviceId, model, enabled);
+  }
+
   async setNightlightScene(
     deviceId: string,
     model: string,

@@ -166,6 +166,11 @@ export class DeviceState {
     return toggleState?.value;
   }
 
+  getSceneStageToggle(): boolean | undefined {
+    const toggleState = this.getProperty<ToggleState>('sceneStageToggle');
+    return toggleState?.value;
+  }
+
   getNightlightScene(): string | number | undefined {
     const modeState = this.getProperty<ModeState>('nightlightScene');
     return modeState?.value;

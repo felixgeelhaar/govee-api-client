@@ -298,6 +298,10 @@ export class CommandFactory {
     return new ToggleCommand('gradientToggle', enabled);
   }
 
+  static sceneStageToggle(enabled: boolean): ToggleCommand {
+    return new ToggleCommand('sceneStageToggle', enabled);
+  }
+
   static mode(instance: string, modeValue: string | number): ModeCommand {
     return new ModeCommand(instance, modeValue);
   }
@@ -374,6 +378,7 @@ export class CommandFactory {
 
       case 'nightlightToggle':
       case 'gradientToggle':
+      case 'sceneStageToggle':
         if (typeof obj.value === 'number' || typeof obj.value === 'boolean') {
           const enabled = typeof obj.value === 'number' ? obj.value === 1 : obj.value;
           return new ToggleCommand(obj.name, enabled);

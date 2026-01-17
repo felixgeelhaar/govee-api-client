@@ -141,11 +141,29 @@ describe('CommandFactory', () => {
     it('should create ColorTemperatureCommand', () => {
       const colorTemp = new ColorTemperature(2700);
       const command = CommandFactory.colorTemperature(colorTemp);
-      
+
       expect(command).toBeInstanceOf(ColorTemperatureCommand);
       expect(command.name).toBe('colorTem');
       expect(command.value).toBe(2700);
       expect((command as ColorTemperatureCommand).colorTemperature).toBe(colorTemp);
+    });
+  });
+
+  describe('sceneStageToggle', () => {
+    it('should create ToggleCommand with enabled=true', () => {
+      const command = CommandFactory.sceneStageToggle(true);
+
+      expect(command.name).toBe('sceneStageToggle');
+      expect(command.value).toBe(1);
+      expect(command.toObject()).toEqual({ name: 'sceneStageToggle', value: 1 });
+    });
+
+    it('should create ToggleCommand with enabled=false', () => {
+      const command = CommandFactory.sceneStageToggle(false);
+
+      expect(command.name).toBe('sceneStageToggle');
+      expect(command.value).toBe(0);
+      expect(command.toObject()).toEqual({ name: 'sceneStageToggle', value: 0 });
     });
   });
 
@@ -231,6 +249,31 @@ describe('CommandFactory', () => {
     it('should throw error for invalid gradientToggle command value', () => {
       expect(() => CommandFactory.fromObject({ name: 'gradientToggle', value: null }))
         .toThrow('Invalid toggle command value: null');
+    });
+
+    it('should throw error for invalid sceneStageToggle command value', () => {
+      expect(() => CommandFactory.fromObject({ name: 'sceneStageToggle', value: 'invalid' }))
+        .toThrow('Invalid toggle command value: invalid');
+    });
+
+    it('should create sceneStageToggle command from object with number value', () => {
+      const commandEnabled = CommandFactory.fromObject({ name: 'sceneStageToggle', value: 1 });
+      expect(commandEnabled.name).toBe('sceneStageToggle');
+      expect(commandEnabled.value).toBe(1);
+
+      const commandDisabled = CommandFactory.fromObject({ name: 'sceneStageToggle', value: 0 });
+      expect(commandDisabled.name).toBe('sceneStageToggle');
+      expect(commandDisabled.value).toBe(0);
+    });
+
+    it('should create sceneStageToggle command from object with boolean value', () => {
+      const commandEnabled = CommandFactory.fromObject({ name: 'sceneStageToggle', value: true });
+      expect(commandEnabled.name).toBe('sceneStageToggle');
+      expect(commandEnabled.value).toBe(1);
+
+      const commandDisabled = CommandFactory.fromObject({ name: 'sceneStageToggle', value: false });
+      expect(commandDisabled.name).toBe('sceneStageToggle');
+      expect(commandDisabled.value).toBe(0);
     });
 
     it('should throw error for invalid nightlightScene command value', () => {

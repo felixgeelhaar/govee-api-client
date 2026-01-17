@@ -520,6 +520,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       musicMode: 'devices.capabilities.music_setting',
       nightlightToggle: 'devices.capabilities.toggle',
       gradientToggle: 'devices.capabilities.toggle',
+      sceneStageToggle: 'devices.capabilities.toggle',
       nightlightScene: 'devices.capabilities.mode',
       presetScene: 'devices.capabilities.mode',
     };
@@ -549,7 +550,11 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     } else if (cmdObj.name === 'musicMode') {
       instance = 'musicMode';
       value = cmdObj.value;
-    } else if (cmdObj.name === 'nightlightToggle' || cmdObj.name === 'gradientToggle') {
+    } else if (
+      cmdObj.name === 'nightlightToggle' ||
+      cmdObj.name === 'gradientToggle' ||
+      cmdObj.name === 'sceneStageToggle'
+    ) {
       instance = cmdObj.name;
       value = cmdObj.value;
     } else if (cmdObj.name === 'nightlightScene' || cmdObj.name === 'presetScene') {
@@ -628,6 +633,10 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
           };
         } else if (capability.instance === 'gradientToggle') {
           result.gradientToggle = {
+            value: capability.state.value === 1 || capability.state.value === true,
+          };
+        } else if (capability.instance === 'sceneStageToggle') {
+          result.sceneStageToggle = {
             value: capability.state.value === 1 || capability.state.value === true,
           };
         }

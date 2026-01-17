@@ -613,6 +613,42 @@ describe('GoveeClient Integration Tests', () => {
       expect(capturedCommand.capability.value).toBe(0);
     });
 
+    it('should set scene stage toggle enabled', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      await client.setSceneStageToggle('curtain-light-123', 'H70B1', true);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.toggle');
+      expect(capturedCommand.capability.instance).toBe('sceneStageToggle');
+      expect(capturedCommand.capability.value).toBe(1);
+    });
+
+    it('should set scene stage toggle disabled', async () => {
+      let capturedCommand: any;
+
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = await request.json() as any;
+          capturedCommand = body.payload;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      await client.setSceneStageToggle('curtain-light-123', 'H70B1', false);
+
+      expect(capturedCommand.capability.type).toBe('devices.capabilities.toggle');
+      expect(capturedCommand.capability.instance).toBe('sceneStageToggle');
+      expect(capturedCommand.capability.value).toBe(0);
+    });
+
     it('should set nightlight scene', async () => {
       let capturedCommand: any;
 
