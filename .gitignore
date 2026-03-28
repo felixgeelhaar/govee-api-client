@@ -53,3 +53,4 @@ temp/
 CLAUDE.md
 *.claude
 .claude/
+.relicta/
