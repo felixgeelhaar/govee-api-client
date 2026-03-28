@@ -6,40 +6,36 @@ on:
       - develop
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
+        node-version: '22'
         cache: 'npm'
-        
+
     - name: Install dependencies
-      run: |
-        rm -rf node_modules
-        npm ci
-        # Workaround for npm optional dependencies bug with Rollup
-        npm install @rollup/rollup-linux-x64-gnu --no-save
-      env:
-        NODE_OPTIONS: --experimental-global-webcrypto
-      
+      run: npm ci
+
     - name: Run linter
       run: npm run lint
-      
+
     - name: Check formatting
       run: npm run format:check
-      
+
     - name: Run tests
       run: npm run test:coverage -- --run
-      env:
-        NODE_OPTIONS: --experimental-global-webcrypto
-      
+
     - name: Build project
       run: npm run build
 
@@ -47,37 +43,32 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
+        node-version: '22'
         registry-url: 'https://registry.npmjs.org'
         cache: 'npm'
-        
+
+    - name: Update npm to latest
+      run: npm install -g npm@latest
+
     - name: Install dependencies
-      run: |
-        rm -rf node_modules
-        npm ci
-        # Workaround for npm optional dependencies bug with Rollup
-        npm install @rollup/rollup-linux-x64-gnu --no-save
-      env:
-        NODE_OPTIONS: --experimental-global-webcrypto
-      
+      run: npm ci
+
     - name: Build project
       run: npm run build
-      
+
     - name: Set beta version
       run: |
         PACKAGE_VERSION=$(node -p "require('./package.json').version")
         BETA_VERSION="${PACKAGE_VERSION}-beta.${GITHUB_RUN_NUMBER}"
         npm version $BETA_VERSION --no-git-tag-version
-        
+
     - name: Publish beta to NPM
-      run: npm publish --tag beta
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      run: npm publish --tag beta --provenance --access public
