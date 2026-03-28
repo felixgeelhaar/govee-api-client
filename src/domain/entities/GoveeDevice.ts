@@ -106,6 +106,7 @@ export class GoveeDevice {
       if (capability.type.includes('toggle')) {
         if (capability.instance === 'nightlightToggle') commands.add('nightlightToggle');
         if (capability.instance === 'gradientToggle') commands.add('gradientToggle');
+        if (capability.instance === 'sceneStageToggle') commands.add('sceneStageToggle');
       }
       if (capability.type.includes('mode')) {
         if (capability.instance === 'nightlightScene') commands.add('nightlightScene');
