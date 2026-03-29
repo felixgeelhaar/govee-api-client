@@ -14,68 +14,75 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-    - name: Clean install dependencies
-      run: npm ci
+      - name: Clean install dependencies
+        run: npm ci
 
-    - name: Run linter
-      run: npm run lint
+      - name: Run linter
+        run: npm run lint
 
-    - name: Check formatting
-      run: npm run format:check
+      - name: Check formatting
+        run: npm run format:check
 
-    - name: Run tests
-      run: npm run test:coverage -- --run
+      - name: Run tests
+        run: npm run test:coverage -- --run
 
-    - name: Build project
-      run: npm run build
+      - name: Build project
+        run: npm run build
 
   publish-npm:
     needs: test
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        registry-url: 'https://registry.npmjs.org'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
 
-    - name: Update npm to latest
-      run: npm install -g npm@latest
+      - name: Sync package version with tag
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: |
+          RELEASE_VERSION="${RELEASE_VERSION#v}"
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
 
-    - name: Clean install dependencies
-      run: npm ci
+      - name: Update npm to latest
+        run: npm install -g npm@latest
 
-    - name: Build project
-      run: npm run build
+      - name: Clean install dependencies
+        run: npm ci
 
-    - name: Publish to NPM
-      run: npm publish --provenance --access public
+      - name: Build project
+        run: npm run build
+
+      - name: Publish to NPM
+        run: npm publish --provenance --access public
 
   create-release:
     needs: publish-npm
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        generate_release_notes: true
-        draft: false
-        prerelease: false
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: false

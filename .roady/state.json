@@ -1,6 +1,6 @@
 {
   "project_id": "govee-api-client",
-  "version": 14,
+  "version": 17,
   "task_states": {
     "issue-19-fix": {
       "status": "done",
@@ -46,6 +46,17 @@
       "completed_at": "2026-03-29T22:01:37.277759+02:00",
       "elapsed_minutes": 1
     },
+    "release-automation-sync": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Updated release workflow to sync package version from the tag before npm publish and moved GitHub Actions to v6 where applicable."
+      ],
+      "started_at": "2026-03-29T22:08:46.37918+02:00",
+      "completed_at": "2026-03-29T22:10:02.166284+02:00",
+      "elapsed_minutes": 1
+    },
     "release-version-sync": {
       "status": "done",
       "path": "",
@@ -58,5 +69,5 @@
       "elapsed_minutes": 0
     }
   },
-  "updated_at": "2026-03-29T22:05:39.082849+02:00"
+  "updated_at": "2026-03-29T22:10:02.166285+02:00"
 }
