@@ -1,6 +1,6 @@
 {
   "project_id": "govee-api-client",
-  "version": 8,
+  "version": 11,
   "task_states": {
     "issue-19-fix": {
       "status": "done",
@@ -34,7 +34,18 @@
       "started_at": "2026-03-29T21:54:21.691855+02:00",
       "completed_at": "2026-03-29T21:54:38.890583+02:00",
       "elapsed_minutes": 0
+    },
+    "release-3-1-2-fix-tests": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Updated affected integration and error tests; `npm test` and `npm run lint` passed."
+      ],
+      "started_at": "2026-03-29T22:00:19.661745+02:00",
+      "completed_at": "2026-03-29T22:01:37.277759+02:00",
+      "elapsed_minutes": 1
     }
   },
-  "updated_at": "2026-03-29T21:54:38.890584+02:00"
+  "updated_at": "2026-03-29T22:01:37.27776+02:00"
 }

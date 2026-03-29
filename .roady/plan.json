@@ -32,9 +32,20 @@
         "issue-19-fix"
       ],
       "feature_id": ""
+    },
+    {
+      "id": "release-3-1-2-fix-tests",
+      "title": "Fix release-blocking test expectations",
+      "description": "Update remaining test expectations and error handling assertions affected by the issue #19 fix so the full release workflow passes.",
+      "priority": "high",
+      "estimate": "30m",
+      "depends_on": [
+        "issue-19-verify"
+      ],
+      "feature_id": ""
     }
   ],
   "approval_status": "approved",
   "created_at": "2026-03-29T21:52:00.737782+02:00",
-  "updated_at": "2026-03-29T21:52:00.737782+02:00"
+  "updated_at": "2026-03-29T22:00:10.479655+02:00"
 }

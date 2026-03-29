@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { GoveeClient } from '../../src/GoveeClient';
@@ -8,7 +8,7 @@ import {
   Brightness,
   LightScene,
   SegmentColor,
-  MusicMode
+  MusicMode,
 } from '../../src/domain/value-objects';
 
 const BASE_URL = 'https://openapi.api.govee.com';
@@ -25,8 +25,8 @@ const mockDevicesResponse = {
         { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
         { type: 'devices.capabilities.range', instance: 'brightness' },
         { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-        { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-      ]
+        { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+      ],
     },
     {
       device: 'bedroom-456',
@@ -34,16 +34,16 @@ const mockDevicesResponse = {
       deviceName: 'Bedroom Strip Light',
       capabilities: [
         { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-        { type: 'devices.capabilities.range', instance: 'brightness' }
-      ]
+        { type: 'devices.capabilities.range', instance: 'brightness' },
+      ],
     },
     {
       device: 'kitchen-789',
       sku: 'H6159',
       deviceName: 'Kitchen Under Cabinet',
-      capabilities: []
-    }
-  ]
+      capabilities: [],
+    },
+  ],
 };
 
 const mockStateResponse = {
@@ -56,31 +56,31 @@ const mockStateResponse = {
       {
         type: 'devices.capabilities.on_off',
         instance: 'powerSwitch',
-        state: { value: true }
+        state: { value: true },
       },
       {
         type: 'devices.capabilities.range',
         instance: 'brightness',
-        state: { value: 75 }
+        state: { value: 75 },
       },
       {
         type: 'devices.capabilities.color_setting',
         instance: 'colorRgb',
-        state: { value: { r: 255, g: 128, b: 0 } }
+        state: { value: { r: 255, g: 128, b: 0 } },
       },
       {
         type: 'devices.capabilities.color_setting',
         instance: 'colorTemperatureK',
-        state: { value: 2700 }
-      }
-    ]
-  }
+        state: { value: 2700 },
+      },
+    ],
+  },
 };
 
 const mockCommandResponse = {
   code: 200,
   message: 'Success',
-  data: {}
+  data: {},
 };
 
 const server = setupServer();
@@ -103,7 +103,7 @@ describe('GoveeClient Integration Tests', () => {
   beforeEach(() => {
     client = new GoveeClient({
       apiKey: 'test-api-key',
-      timeout: 5000
+      timeout: 5000,
     });
 
     // Setup default successful responses
@@ -122,8 +122,9 @@ describe('GoveeClient Integration Tests', () => {
 
   describe('constructor validation', () => {
     it('should throw error for missing API key', () => {
-      expect(() => new GoveeClient({ apiKey: '' }))
-        .toThrow('API key is required. Provide it via config.apiKey or set the GOVEE_API_KEY environment variable.');
+      expect(() => new GoveeClient({ apiKey: '' })).toThrow(
+        'API key is required. Provide it via config.apiKey or set the GOVEE_API_KEY environment variable.'
+      );
     });
 
     it('should create client with valid configuration', () => {
@@ -150,8 +151,9 @@ describe('GoveeClient Integration Tests', () => {
       const originalEnv = process.env.GOVEE_API_KEY;
       delete process.env.GOVEE_API_KEY;
 
-      expect(() => new GoveeClient())
-        .toThrow('API key is required. Provide it via config.apiKey or set the GOVEE_API_KEY environment variable.');
+      expect(() => new GoveeClient()).toThrow(
+        'API key is required. Provide it via config.apiKey or set the GOVEE_API_KEY environment variable.'
+      );
 
       // Restore
       if (originalEnv !== undefined) {
@@ -246,7 +248,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -266,7 +268,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -284,7 +286,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -302,7 +304,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -313,7 +315,7 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommand.capability.type).toBe('devices.capabilities.color_setting');
       expect(capturedCommand.capability.instance).toBe('colorRgb'); // Fixed: check correct instance
-      expect(capturedCommand.capability.value).toEqual({ r: 255, g: 0, b: 128 });
+      expect(capturedCommand.capability.value).toBe(16711808);
     });
 
     it('should set color temperature', async () => {
@@ -321,7 +323,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -342,7 +344,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
@@ -364,7 +366,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
@@ -379,7 +381,7 @@ describe('GoveeClient Integration Tests', () => {
       expect(capturedCommands[0].capability.value).toBe(1);
       expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
       expect(capturedCommands[1].capability.instance).toBe('colorRgb'); // Fixed: check correct instance
-      expect(capturedCommands[1].capability.value).toEqual({ r: 0, g: 255, b: 0 });
+      expect(capturedCommands[1].capability.value).toBe(65280);
     });
 
     it('should turn on with color and brightness', async () => {
@@ -387,7 +389,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
@@ -403,7 +405,7 @@ describe('GoveeClient Integration Tests', () => {
       expect(capturedCommands[0].capability.value).toBe(1);
       expect(capturedCommands[1].capability.type).toBe('devices.capabilities.color_setting');
       expect(capturedCommands[1].capability.instance).toBe('colorRgb'); // Fixed: check correct instance
-      expect(capturedCommands[1].capability.value).toEqual({ r: 0, g: 255, b: 0 });
+      expect(capturedCommands[1].capability.value).toBe(65280);
       expect(capturedCommands[2].capability.type).toBe('devices.capabilities.range');
       expect(capturedCommands[2].capability.value).toBe(60);
     });
@@ -413,7 +415,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
@@ -436,7 +438,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
@@ -475,11 +477,11 @@ describe('GoveeClient Integration Tests', () => {
                 options: [
                   { name: 'Sunrise', value: { id: 3853, paramId: 4280 } },
                   { name: 'Sunset', value: { id: 3854, paramId: 4281 } },
-                ]
-              }
-            }
-          ]
-        }
+                ],
+              },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -500,7 +502,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -519,7 +521,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -541,7 +543,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -563,7 +565,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -582,7 +584,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -600,7 +602,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -618,7 +620,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -636,7 +638,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -654,7 +656,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -672,7 +674,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommand = body.payload;
           return HttpResponse.json(mockCommandResponse);
         })
@@ -704,7 +706,7 @@ describe('GoveeClient Integration Tests', () => {
       await Promise.all(promises);
 
       expect(requestCount).toBe(5);
-      
+
       // Verify requests were made (rate limiting would space them out)
       // Note: In a real test, we'd verify timing between requests
       expect(requestTimestamps).toHaveLength(5);
@@ -715,10 +717,7 @@ describe('GoveeClient Integration Tests', () => {
     it('should propagate API errors', async () => {
       server.use(
         http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
-          return HttpResponse.json(
-            { code: 1001, message: 'Invalid API key' },
-            { status: 401 }
-          );
+          return HttpResponse.json({ code: 1001, message: 'Invalid API key' }, { status: 401 });
         })
       );
 
@@ -742,7 +741,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
@@ -777,7 +776,7 @@ describe('GoveeClient Integration Tests', () => {
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           capturedCommands.push(body.payload);
           return HttpResponse.json(mockCommandResponse);
         })
@@ -787,13 +786,18 @@ describe('GoveeClient Integration Tests', () => {
       const controllableDevices = await client.getControllableDevices();
 
       await Promise.all(
-        controllableDevices.map(device => 
-          client.turnOff(device.deviceId, device.model)
-        )
+        controllableDevices.map(device => client.turnOff(device.deviceId, device.model))
       );
 
       expect(capturedCommands).toHaveLength(2); // Two controllable devices
-      expect(capturedCommands.every(cmd => cmd.capability.type === 'devices.capabilities.on_off' && cmd.capability.instance === 'powerSwitch' && cmd.capability.value === 0)).toBe(true);
+      expect(
+        capturedCommands.every(
+          cmd =>
+            cmd.capability.type === 'devices.capabilities.on_off' &&
+            cmd.capability.instance === 'powerSwitch' &&
+            cmd.capability.value === 0
+        )
+      ).toBe(true);
     });
   });
 
@@ -828,7 +832,7 @@ describe('GoveeClient Integration Tests', () => {
       const clientWithRetry = new GoveeClient({
         apiKey: 'test-api-key',
         enableRetries: true,
-        retryPolicy: 'development'
+        retryPolicy: 'development',
       });
 
       const isEnabled = clientWithRetry.isRetryEnabled();
@@ -845,7 +849,7 @@ describe('GoveeClient Integration Tests', () => {
       const clientWithRetry = new GoveeClient({
         apiKey: 'test-api-key',
         enableRetries: true,
-        retryPolicy: 'development'
+        retryPolicy: 'development',
       });
 
       const metrics = clientWithRetry.getRetryMetrics();
@@ -862,7 +866,7 @@ describe('GoveeClient Integration Tests', () => {
       const clientWithRetry = new GoveeClient({
         apiKey: 'test-api-key',
         enableRetries: true,
-        retryPolicy: 'development'
+        retryPolicy: 'development',
       });
 
       // Should not throw
