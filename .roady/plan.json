@@ -1,0 +1,40 @@
+{
+  "id": "plan-govee-api-client-1774813920",
+  "spec_id": "govee-api-client",
+  "tasks": [
+    {
+      "id": "issue-19-investigate",
+      "title": "Inspect issue 19 command and schema paths",
+      "description": "Review the color command conversion and command response schema implementation tied to GitHub issue #19. Identify impacted files and confirm expected API v2 payload/response shapes.",
+      "priority": "high",
+      "estimate": "20m",
+      "depends_on": null,
+      "feature_id": ""
+    },
+    {
+      "id": "issue-19-fix",
+      "title": "Fix colorRgb packing and response schema",
+      "description": "Update command conversion so colorRgb values are sent as packed integers for API v2, and adjust response parsing to accept the API's msg field without breaking existing consumers.",
+      "priority": "high",
+      "estimate": "45m",
+      "depends_on": [
+        "issue-19-investigate"
+      ],
+      "feature_id": ""
+    },
+    {
+      "id": "issue-19-verify",
+      "title": "Add or update regression coverage",
+      "description": "Add tests covering packed colorRgb serialization and successful parsing of command responses that return msg. Run the relevant test suite to verify the fix.",
+      "priority": "high",
+      "estimate": "30m",
+      "depends_on": [
+        "issue-19-fix"
+      ],
+      "feature_id": ""
+    }
+  ],
+  "approval_status": "approved",
+  "created_at": "2026-03-29T21:52:00.737782+02:00",
+  "updated_at": "2026-03-29T21:52:00.737782+02:00"
+}

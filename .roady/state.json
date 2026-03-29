@@ -1,0 +1,40 @@
+{
+  "project_id": "govee-api-client",
+  "version": 8,
+  "task_states": {
+    "issue-19-fix": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Updated command serialization, response schema normalization, and API error parsing for msg/message compatibility."
+      ],
+      "started_at": "2026-03-29T21:53:28.558052+02:00",
+      "completed_at": "2026-03-29T21:54:21.69052+02:00",
+      "elapsed_minutes": 0
+    },
+    "issue-19-investigate": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Inspected command conversion, response schemas, and integration coverage for issue #19."
+      ],
+      "started_at": "2026-03-29T21:52:10.588343+02:00",
+      "completed_at": "2026-03-29T21:53:28.54652+02:00",
+      "elapsed_minutes": 1
+    },
+    "issue-19-verify": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "`npm test -- tests/integration/GoveeDeviceRepository.test.ts` and `npm run lint` passed."
+      ],
+      "started_at": "2026-03-29T21:54:21.691855+02:00",
+      "completed_at": "2026-03-29T21:54:38.890583+02:00",
+      "elapsed_minutes": 0
+    }
+  },
+  "updated_at": "2026-03-29T21:54:38.890584+02:00"
+}
