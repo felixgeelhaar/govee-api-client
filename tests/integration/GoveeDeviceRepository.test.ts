@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { GoveeDeviceRepository } from '../../src/infrastructure/GoveeDeviceRepository';
@@ -20,8 +20,8 @@ const mockDevicesResponse = {
         { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
         { type: 'devices.capabilities.range', instance: 'brightness' },
         { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-        { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-      ]
+        { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+      ],
     },
     {
       device: 'device456',
@@ -29,10 +29,10 @@ const mockDevicesResponse = {
       deviceName: 'Bedroom Light',
       capabilities: [
         { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-        { type: 'devices.capabilities.range', instance: 'brightness' }
-      ]
-    }
-  ]
+        { type: 'devices.capabilities.range', instance: 'brightness' },
+      ],
+    },
+  ],
 };
 
 const mockStateResponse = {
@@ -45,31 +45,31 @@ const mockStateResponse = {
       {
         type: 'devices.capabilities.on_off',
         instance: 'powerSwitch',
-        state: { value: true }
+        state: { value: true },
       },
       {
         type: 'devices.capabilities.range',
         instance: 'brightness',
-        state: { value: 75 }
+        state: { value: 75 },
       },
       {
         type: 'devices.capabilities.color_setting',
         instance: 'colorRgb',
-        state: { value: { r: 255, g: 128, b: 0 } }
+        state: { value: { r: 255, g: 128, b: 0 } },
       },
       {
         type: 'devices.capabilities.color_setting',
         instance: 'colorTemperatureK',
-        state: { value: 2700 }
-      }
-    ]
-  }
+        state: { value: 2700 },
+      },
+    ],
+  },
 };
 
 const mockCommandResponse = {
   code: 200,
   message: 'Success',
-  data: {}
+  data: {},
 };
 
 const server = setupServer();
@@ -92,19 +92,21 @@ describe('GoveeDeviceRepository Integration Tests', () => {
   beforeEach(() => {
     repository = new GoveeDeviceRepository({
       apiKey: 'test-api-key',
-      timeout: 5000
+      timeout: 5000,
     });
   });
 
   describe('constructor validation', () => {
     it('should throw error for empty API key', () => {
-      expect(() => new GoveeDeviceRepository({ apiKey: '' }))
-        .toThrow('API key is required and must be a non-empty string');
+      expect(() => new GoveeDeviceRepository({ apiKey: '' })).toThrow(
+        'API key is required and must be a non-empty string'
+      );
     });
 
     it('should throw error for invalid timeout', () => {
-      expect(() => new GoveeDeviceRepository({ apiKey: 'test-key', timeout: -1 }))
-        .toThrow('Timeout must be a positive integer');
+      expect(() => new GoveeDeviceRepository({ apiKey: 'test-key', timeout: -1 })).toThrow(
+        'Timeout must be a positive integer'
+      );
     });
   });
 
@@ -137,10 +139,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should handle API error response', async () => {
       server.use(
         http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
-          return HttpResponse.json(
-            { code: 1001, message: 'Invalid API key' },
-            { status: 400 }
-          );
+          return HttpResponse.json({ code: 1001, message: 'Invalid API key' }, { status: 400 });
         })
       );
 
@@ -150,10 +149,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should handle 401 unauthorized response', async () => {
       server.use(
         http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
-          return HttpResponse.json(
-            { message: 'Invalid API key' },
-            { status: 401 }
-          );
+          return HttpResponse.json({ message: 'Invalid API key' }, { status: 401 });
         })
       );
 
@@ -165,13 +161,13 @@ describe('GoveeDeviceRepository Integration Tests', () => {
         http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return HttpResponse.json(
             { message: 'Rate limit exceeded' },
-            { 
+            {
               status: 429,
               headers: {
                 'retry-after': '60',
                 'x-ratelimit-limit': '100',
-                'x-ratelimit-remaining': '0'
-              }
+                'x-ratelimit-remaining': '0',
+              },
             }
           );
         })
@@ -195,16 +191,17 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should successfully fetch device state', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/state`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
-          
+
           // Validate requestId is a valid UUID v4
-          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidV4Regex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           expect(body.requestId).toMatch(uuidV4Regex);
           expect(typeof body.requestId).toBe('string');
           expect(body.requestId).toHaveLength(36);
-          
+
           return HttpResponse.json(mockStateResponse);
         })
       );
@@ -229,10 +226,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.on_off',
               instance: 'powerSwitch',
-              state: { value: false }
-            }
-          ]
-        }
+              state: { value: false },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -248,17 +245,18 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     });
 
     it('should validate device parameters', async () => {
-      await expect(repository.findState('', 'H6159')).rejects.toThrow('Device ID must be a non-empty string');
-      await expect(repository.findState('device123', '')).rejects.toThrow('SKU must be a non-empty string');
+      await expect(repository.findState('', 'H6159')).rejects.toThrow(
+        'Device ID must be a non-empty string'
+      );
+      await expect(repository.findState('device123', '')).rejects.toThrow(
+        'SKU must be a non-empty string'
+      );
     });
 
     it('should handle API error response', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
-          return HttpResponse.json(
-            { code: 1002, message: 'Device not found' },
-            { status: 404 }
-          );
+          return HttpResponse.json({ code: 1002, message: 'Device not found' }, { status: 404 });
         })
       );
 
@@ -276,10 +274,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.dynamic_scene',
               instance: 'lightScene',
-              state: { value: { id: 3853, paramId: 4280 } }
-            }
-          ]
-        }
+              state: { value: { id: 3853, paramId: 4280 } },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -310,12 +308,12 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               state: {
                 value: [
                   { segment: 0, rgb: { r: 255, g: 0, b: 0 } },
-                  { segment: 1, rgb: { r: 0, g: 255, b: 0 } }
-                ]
-              }
-            }
-          ]
-        }
+                  { segment: 1, rgb: { r: 0, g: 255, b: 0 } },
+                ],
+              },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -350,12 +348,12 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               state: {
                 value: [
                   { segment: 0, brightness: 75 },
-                  { segment: 1, brightness: 50 }
-                ]
-              }
-            }
-          ]
-        }
+                  { segment: 1, brightness: 50 },
+                ],
+              },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -383,10 +381,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.music_setting',
               instance: 'musicMode',
-              state: { value: { modeId: 1, sensitivity: 75 } }
-            }
-          ]
-        }
+              state: { value: { modeId: 1, sensitivity: 75 } },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -414,10 +412,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.toggle',
               instance: 'nightlightToggle',
-              state: { value: 1 }
-            }
-          ]
-        }
+              state: { value: 1 },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -443,10 +441,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.toggle',
               instance: 'gradientToggle',
-              state: { value: true }
-            }
-          ]
-        }
+              state: { value: true },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -472,10 +470,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.toggle',
               instance: 'sceneStageToggle',
-              state: { value: 1 }
-            }
-          ]
-        }
+              state: { value: 1 },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -501,10 +499,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.toggle',
               instance: 'sceneStageToggle',
-              state: { value: true }
-            }
-          ]
-        }
+              state: { value: true },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -530,10 +528,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.toggle',
               instance: 'sceneStageToggle',
-              state: { value: 0 }
-            }
-          ]
-        }
+              state: { value: 0 },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -559,10 +557,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.mode',
               instance: 'nightlightScene',
-              state: { value: 42 }
-            }
-          ]
-        }
+              state: { value: 42 },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -588,10 +586,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             {
               type: 'devices.capabilities.mode',
               instance: 'presetScene',
-              state: { value: 'Romantic' }
-            }
-          ]
-        }
+              state: { value: 'Romantic' },
+            },
+          ],
+        },
       };
 
       server.use(
@@ -624,22 +622,23 @@ describe('GoveeDeviceRepository Integration Tests', () => {
                 options: [
                   { name: 'Sunrise', value: { id: 3853, paramId: 4280 } },
                   { name: 'Sunset', value: { id: 3854, paramId: 4281 } },
-                  { name: 'Ocean', value: { id: 3855, paramId: 4282 } }
-                ]
-              }
-            }
-          ]
-        }
+                  { name: 'Ocean', value: { id: 3855, paramId: 4282 } },
+                ],
+              },
+            },
+          ],
+        },
       };
 
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/scenes`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
 
           // Validate requestId is a valid UUID v4
-          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidV4Regex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           expect(body.requestId).toMatch(uuidV4Regex);
 
           return HttpResponse.json(mockScenesResponse);
@@ -657,21 +656,24 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     });
 
     it('should validate device parameters', async () => {
-      await expect(repository.findDynamicScenes('', 'H6159')).rejects.toThrow('Device ID must be a non-empty string');
-      await expect(repository.findDynamicScenes('device123', '')).rejects.toThrow('SKU must be a non-empty string');
+      await expect(repository.findDynamicScenes('', 'H6159')).rejects.toThrow(
+        'Device ID must be a non-empty string'
+      );
+      await expect(repository.findDynamicScenes('device123', '')).rejects.toThrow(
+        'SKU must be a non-empty string'
+      );
     });
 
     it('should handle API error response', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/scenes`, () => {
-          return HttpResponse.json(
-            { code: 1002, msg: 'Device not found' },
-            { status: 404 }
-          );
+          return HttpResponse.json({ code: 1002, msg: 'Device not found' }, { status: 404 });
         })
       );
 
-      await expect(repository.findDynamicScenes('device123', 'H6159')).rejects.toThrow(GoveeApiError);
+      await expect(repository.findDynamicScenes('device123', 'H6159')).rejects.toThrow(
+        GoveeApiError
+      );
     });
 
     it('should handle network errors', async () => {
@@ -681,7 +683,9 @@ describe('GoveeDeviceRepository Integration Tests', () => {
         })
       );
 
-      await expect(repository.findDynamicScenes('device123', 'H6159')).rejects.toThrow(NetworkError);
+      await expect(repository.findDynamicScenes('device123', 'H6159')).rejects.toThrow(
+        NetworkError
+      );
     });
   });
 
@@ -689,19 +693,20 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should successfully send power on command', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.on_off');
           expect(body.payload.capability.instance).toBe('powerSwitch'); // Fixed: correct instance
           expect(body.payload.capability.value).toBe(1); // Fixed: numeric value for 'on'
-          
+
           // Validate requestId is a valid UUID v4
-          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidV4Regex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           expect(body.requestId).toMatch(uuidV4Regex);
           expect(typeof body.requestId).toBe('string');
           expect(body.requestId).toHaveLength(36);
-          
+
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -713,19 +718,20 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should successfully send power off command', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.on_off');
           expect(body.payload.capability.instance).toBe('powerSwitch'); // Fixed: correct instance
           expect(body.payload.capability.value).toBe(0); // Fixed: numeric value for 'off'
-          
+
           // Validate requestId is a valid UUID v4
-          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidV4Regex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           expect(body.requestId).toMatch(uuidV4Regex);
           expect(typeof body.requestId).toBe('string');
           expect(body.requestId).toHaveLength(36);
-          
+
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -737,17 +743,18 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should successfully send brightness command', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.range');
           expect(body.payload.capability.instance).toBe('brightness'); // Added: verify correct instance
           expect(body.payload.capability.value).toBe(75);
-          
+
           // Validate requestId is a valid UUID v4
-          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidV4Regex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           expect(body.requestId).toMatch(uuidV4Regex);
-          
+
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -759,12 +766,12 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should successfully send color command', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.color_setting');
           expect(body.payload.capability.instance).toBe('colorRgb'); // Fixed: check correct instance
-          expect(body.payload.capability.value).toEqual({ r: 255, g: 128, b: 0 });
+          expect(body.payload.capability.value).toBe(16744448);
           return HttpResponse.json(mockCommandResponse);
         })
       );
@@ -773,10 +780,25 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       await expect(repository.sendCommand('device123', 'H6159', command)).resolves.not.toThrow();
     });
 
+    it('should accept command responses that use msg instead of message', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
+          return HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            data: {},
+          });
+        })
+      );
+
+      const command = CommandFactory.powerOn();
+      await expect(repository.sendCommand('device123', 'H6159', command)).resolves.not.toThrow();
+    });
+
     it('should successfully send color temperature command', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
-          const body = await request.json() as any;
+          const body = (await request.json()) as any;
           expect(body.payload.device).toBe('device123');
           expect(body.payload.sku).toBe('H6159');
           expect(body.payload.capability.type).toBe('devices.capabilities.color_setting');
@@ -792,24 +814,25 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
     it('should validate device parameters', async () => {
       const command = CommandFactory.powerOn();
-      
-      await expect(repository.sendCommand('', 'H6159', command)).rejects.toThrow('Device ID must be a non-empty string');
-      await expect(repository.sendCommand('device123', '', command)).rejects.toThrow('SKU must be a non-empty string');
+
+      await expect(repository.sendCommand('', 'H6159', command)).rejects.toThrow(
+        'Device ID must be a non-empty string'
+      );
+      await expect(repository.sendCommand('device123', '', command)).rejects.toThrow(
+        'SKU must be a non-empty string'
+      );
     });
 
     it('should handle device offline error', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
-          return HttpResponse.json(
-            { code: 1003, message: 'Device is offline' },
-            { status: 400 }
-          );
+          return HttpResponse.json({ code: 1003, message: 'Device is offline' }, { status: 400 });
         })
       );
 
       const command = CommandFactory.powerOn();
       const error = await repository.sendCommand('device123', 'H6159', command).catch(e => e);
-      
+
       expect(error).toBeInstanceOf(GoveeApiError);
       expect(error.isDeviceOffline()).toBe(true);
     });
@@ -817,32 +840,43 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should handle unsupported command error', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
-          return HttpResponse.json(
-            { code: 1004, message: 'Command not support' },
-            { status: 400 }
-          );
+          return HttpResponse.json({ code: 1004, message: 'Command not support' }, { status: 400 });
         })
       );
 
       const command = CommandFactory.powerOn();
       const error = await repository.sendCommand('device123', 'H6159', command).catch(e => e);
-      
+
       expect(error).toBeInstanceOf(GoveeApiError);
       expect(error.isUnsupportedCommand()).toBe(true);
+    });
+
+    it('should surface API error messages returned in msg', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
+          return HttpResponse.json({ code: 1003, msg: 'Device is offline' }, { status: 400 });
+        })
+      );
+
+      const command = CommandFactory.powerOn();
+      const error = await repository.sendCommand('device123', 'H6159', command).catch(e => e);
+
+      expect(error).toBeInstanceOf(GoveeApiError);
+      expect(error.message).toContain('Device is offline');
+      expect(error.isDeviceOffline()).toBe(true);
     });
 
     it('should handle server errors', async () => {
       server.use(
         http.post(`${BASE_URL}/router/api/v1/device/control`, () => {
-          return HttpResponse.json(
-            { message: 'Internal server error' },
-            { status: 500 }
-          );
+          return HttpResponse.json({ message: 'Internal server error' }, { status: 500 });
         })
       );
 
       const command = CommandFactory.powerOn();
-      await expect(repository.sendCommand('device123', 'H6159', command)).rejects.toThrow(GoveeApiError);
+      await expect(repository.sendCommand('device123', 'H6159', command)).rejects.toThrow(
+        GoveeApiError
+      );
     });
   });
 
@@ -879,7 +913,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
         http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
           return new HttpResponse('invalid json', {
             status: 200,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
           });
         })
       );
@@ -900,10 +934,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
     it('should handle non-200 success codes from API', async () => {
       server.use(
         http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
-          return HttpResponse.json(
-            { ...mockDevicesResponse, code: 201 },
-            { status: 200 }
-          );
+          return HttpResponse.json({ ...mockDevicesResponse, code: 201 }, { status: 200 });
         })
       );
 
@@ -923,8 +954,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               { type: 'devices.capabilities.range', instance: 'brightness' },
               { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-            ]
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+            ],
           },
           {
             device: '',
@@ -932,8 +963,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Invalid Device',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
           },
           {
             device: 'device789',
@@ -941,10 +972,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Kitchen Light',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
-          }
-        ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
       };
 
       server.use(
@@ -973,8 +1004,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               { type: 'devices.capabilities.range', instance: 'brightness' },
               { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-            ]
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+            ],
           },
           {
             device: null,
@@ -982,8 +1013,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Invalid Device',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
           },
           {
             // device missing entirely
@@ -991,10 +1022,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Another Invalid Device',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
-          }
-        ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
       };
 
       server.use(
@@ -1022,8 +1053,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               { type: 'devices.capabilities.range', instance: 'brightness' },
               { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-            ]
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+            ],
           },
           {
             device: '   ',
@@ -1031,8 +1062,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Invalid Device',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
           },
           {
             device: '\t\n',
@@ -1040,10 +1071,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Another Invalid Device',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
-          }
-        ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
       };
 
       server.use(
@@ -1071,8 +1102,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               { type: 'devices.capabilities.range', instance: 'brightness' },
               { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-            ]
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+            ],
           },
           {
             device: 'device456',
@@ -1080,10 +1111,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Invalid Model Device',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
-          }
-        ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
       };
 
       server.use(
@@ -1111,8 +1142,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               { type: 'devices.capabilities.range', instance: 'brightness' },
               { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-            ]
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+            ],
           },
           {
             device: 'device456',
@@ -1120,10 +1151,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: '',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
-          }
-        ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
       };
 
       server.use(
@@ -1151,14 +1182,14 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               { type: 'devices.capabilities.range', instance: 'brightness' },
               { type: 'devices.capabilities.color_setting', instance: 'colorRgb' },
-              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' }
-            ]
+              { type: 'devices.capabilities.color_setting', instance: 'colorTemperatureK' },
+            ],
           },
           {
             device: 'device456',
             sku: 'H6160',
             deviceName: 'Invalid Commands Device',
-            capabilities: null
+            capabilities: null,
           },
           {
             device: 'device789',
@@ -1167,10 +1198,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               { type: '', instance: 'invalid' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
-          }
-        ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
       };
 
       server.use(
@@ -1196,8 +1227,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Invalid Device 1',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
           },
           {
             device: 'device456',
@@ -1205,8 +1236,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: 'Invalid Device 2',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
           },
           {
             device: 'device789',
@@ -1214,10 +1245,10 @@ describe('GoveeDeviceRepository Integration Tests', () => {
             deviceName: '',
             capabilities: [
               { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
-              { type: 'devices.capabilities.range', instance: 'brightness' }
-            ]
-          }
-        ]
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
       };
 
       server.use(

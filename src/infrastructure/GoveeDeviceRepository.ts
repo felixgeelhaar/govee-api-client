@@ -112,6 +112,7 @@ interface GoveeCommandRequest {
 interface GoveeCommandResponse {
   code: number;
   message: string;
+  msg?: string;
   data?: unknown;
 }
 
@@ -534,7 +535,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       value = cmdObj.value === 'on' ? 1 : 0;
     } else if (cmdObj.name === 'color') {
       instance = 'colorRgb';
-      value = cmdObj.value;
+      value = this.packColorRgbValue(cmdObj.value);
     } else if (cmdObj.name === 'colorTem') {
       instance = 'colorTemperatureK';
       value = cmdObj.value;
@@ -570,6 +571,23 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       instance,
       value,
     };
+  }
+
+  private packColorRgbValue(value: unknown): unknown {
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'r' in value &&
+      'g' in value &&
+      'b' in value &&
+      typeof value.r === 'number' &&
+      typeof value.g === 'number' &&
+      typeof value.b === 'number'
+    ) {
+      return value.r * 65536 + value.g * 256 + value.b;
+    }
+
+    return value;
   }
 
   private mapCapabilitiesToStateProperties(

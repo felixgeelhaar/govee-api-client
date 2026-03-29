@@ -59,11 +59,30 @@ export const GoveeStateResponseSchema = z.object({
 });
 
 // Command API response schema
-export const GoveeCommandResponseSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  data: z.unknown().optional(),
-});
+export const GoveeCommandResponseSchema = z
+  .object({
+    code: z.number(),
+    message: z.string().optional(),
+    msg: z.string().optional(),
+    data: z.unknown().optional(),
+  })
+  .transform((response, ctx) => {
+    const message = response.message ?? response.msg;
+
+    if (typeof message !== 'string') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Command response must include either a message or msg field',
+        path: ['message'],
+      });
+      return z.NEVER;
+    }
+
+    return {
+      ...response,
+      message,
+    };
+  });
 
 // Dynamic Scene option schema
 export const GoveeSceneOptionSchema = z.object({

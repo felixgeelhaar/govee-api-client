@@ -21,7 +21,7 @@ export class GoveeApiError extends GoveeApiClientError {
 
   static fromResponse(
     statusCode: number,
-    responseBody: { code?: number; message?: string } | string | null | undefined
+    responseBody: { code?: number; message?: string; msg?: string } | string | null | undefined
   ): GoveeApiError {
     // Handle string responses
     if (typeof responseBody === 'string' && responseBody.trim().length > 0) {
@@ -35,7 +35,7 @@ export class GoveeApiError extends GoveeApiClientError {
 
     // Handle object responses with potential undefined/null properties
     const apiErrorCode = responseBody.code;
-    const apiMessage = responseBody.message;
+    const apiMessage = responseBody.message ?? responseBody.msg;
 
     // Construct meaningful error message, handling undefined/null apiMessage
     const message =
