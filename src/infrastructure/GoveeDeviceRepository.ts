@@ -544,7 +544,12 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       value = cmdObj.value;
     } else if (cmdObj.name === 'segmentedColorRgb') {
       instance = 'segmentedColorRgb';
-      value = cmdObj.value;
+      value = Array.isArray(cmdObj.value)
+        ? cmdObj.value.map((seg: { segment: number; rgb: unknown }) => ({
+            segment: seg.segment,
+            rgb: this.packColorRgbValue(seg.rgb),
+          }))
+        : cmdObj.value;
     } else if (cmdObj.name === 'segmentedBrightness') {
       instance = 'segmentedBrightness';
       value = cmdObj.value;
@@ -590,6 +595,18 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     return value;
   }
 
+  private unpackColorRgbValue(value: unknown): { r: number; g: number; b: number } {
+    if (typeof value === 'number') {
+      return {
+        r: Math.floor(value / 65536) & 0xff,
+        g: Math.floor(value / 256) & 0xff,
+        b: value & 0xff,
+      };
+    }
+
+    return value as { r: number; g: number; b: number };
+  }
+
   private mapCapabilitiesToStateProperties(
     capabilities: Array<{ type: string; instance: string; state: { value: unknown } }>
   ): Record<string, StateProperty> {
@@ -603,9 +620,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       } else if (capability.type.includes('color_setting')) {
         if (capability.instance === 'colorRgb') {
           result.color = {
-            value: ColorRgb.fromObject(
-              capability.state.value as { r: number; g: number; b: number }
-            ),
+            value: ColorRgb.fromObject(this.unpackColorRgbValue(capability.state.value)),
           };
         } else if (capability.instance === 'colorTemperatureK') {
           result.colorTem = { value: new ColorTemperature(capability.state.value as number) };
@@ -622,10 +637,16 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         if (capability.instance === 'segmentedColorRgb') {
           const segments = capability.state.value as Array<{
             segment: number;
-            rgb: { r: number; g: number; b: number };
+            rgb: unknown;
           }>;
           result.segmentedColorRgb = {
-            value: segments.map(seg => new SegmentColor(seg.segment, ColorRgb.fromObject(seg.rgb))),
+            value: segments.map(
+              seg =>
+                new SegmentColor(
+                  seg.segment,
+                  ColorRgb.fromObject(this.unpackColorRgbValue(seg.rgb))
+                )
+            ),
           };
         } else if (capability.instance === 'segmentedBrightness') {
           const segments = capability.state.value as Array<{

@@ -55,7 +55,7 @@ const mockStateResponse = {
       {
         type: 'devices.capabilities.color_setting',
         instance: 'colorRgb',
-        state: { value: { r: 255, g: 128, b: 0 } },
+        state: { value: 255 * 65536 + 128 * 256 + 0 },
       },
       {
         type: 'devices.capabilities.color_setting',
@@ -307,8 +307,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               instance: 'segmentedColorRgb',
               state: {
                 value: [
-                  { segment: 0, rgb: { r: 255, g: 0, b: 0 } },
-                  { segment: 1, rgb: { r: 0, g: 255, b: 0 } },
+                  { segment: 0, rgb: 255 * 65536 },
+                  { segment: 1, rgb: 255 * 256 },
                 ],
               },
             },
