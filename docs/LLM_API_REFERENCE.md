@@ -5,7 +5,7 @@
 The Govee API Client is an enterprise-grade TypeScript library for controlling Govee smart devices. It follows Domain-Driven Design (DDD) principles with comprehensive error handling, rate limiting, and retry capabilities.
 
 **Package**: `@felixgeelhaar/govee-api-client`  
-**Version**: 2.0.0  
+**Version**: 3.1.13  
 **License**: MIT
 
 ## Quick Start
@@ -360,7 +360,7 @@ class MusicMode {
   equals(other: MusicMode): boolean;
   hasSensitivity(): boolean;
   toString(): string;
-  toApiValue(): { modeId: number; sensitivity?: number };
+  toApiValue(): { musicMode: number; sensitivity?: number };
   toObject(): { modeId: number; sensitivity?: number };
 
   static fromObject(obj: { modeId: number; sensitivity?: number }): MusicMode;

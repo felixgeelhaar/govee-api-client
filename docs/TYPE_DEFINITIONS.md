@@ -376,7 +376,7 @@ class MusicMode {
   equals(other: MusicMode): boolean;
   hasSensitivity(): boolean;
   toString(): string;
-  toApiValue(): { modeId: number; sensitivity?: number };
+  toApiValue(): { musicMode: number; sensitivity?: number };
   toObject(): MusicModeObject;
 
   static fromObject(obj: MusicModeObject): MusicMode;
