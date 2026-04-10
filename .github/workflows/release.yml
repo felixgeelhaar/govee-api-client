@@ -60,9 +60,6 @@ jobs:
           RELEASE_VERSION="${RELEASE_VERSION#v}"
           npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
 
-      - name: Update npm to latest
-        run: npm install -g npm@latest
-
       - name: Clean install dependencies
         run: npm ci
 
