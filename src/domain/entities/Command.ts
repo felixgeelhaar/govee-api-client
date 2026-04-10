@@ -187,7 +187,7 @@ export class MusicModeCommand extends Command {
     this._musicMode = musicMode;
   }
 
-  get value(): { modeId: number; sensitivity?: number } {
+  get value(): { musicMode: number; sensitivity?: number } {
     return this._musicMode.toApiValue();
   }
 
@@ -195,7 +195,7 @@ export class MusicModeCommand extends Command {
     return this._musicMode;
   }
 
-  toObject(): { name: string; value: { modeId: number; sensitivity?: number } } {
+  toObject(): { name: string; value: { musicMode: number; sensitivity?: number } } {
     return { name: this.name, value: this.value };
   }
 }
@@ -375,8 +375,8 @@ export class CommandFactory {
 
       case 'musicMode':
         if (typeof obj.value === 'object' && obj.value !== null) {
-          const modeValue = obj.value as { modeId: number; sensitivity?: number };
-          return new MusicModeCommand(new MusicMode(modeValue.modeId, modeValue.sensitivity));
+          const modeValue = obj.value as { musicMode: number; sensitivity?: number };
+          return new MusicModeCommand(new MusicMode(modeValue.musicMode, modeValue.sensitivity));
         }
         throw new Error(`Invalid music mode command value: ${obj.value}`);
 

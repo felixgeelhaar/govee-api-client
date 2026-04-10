@@ -173,7 +173,7 @@ describe('MusicMode', () => {
       const apiValue = musicMode.toApiValue();
 
       expect(apiValue).toEqual({
-        modeId: 1,
+        musicMode: 1,
         sensitivity: 50,
       });
     });
@@ -183,7 +183,7 @@ describe('MusicMode', () => {
       const apiValue = musicMode.toApiValue();
 
       expect(apiValue).toEqual({
-        modeId: 1,
+        musicMode: 1,
       });
     });
   });

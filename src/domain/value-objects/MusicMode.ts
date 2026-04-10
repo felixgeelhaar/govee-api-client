@@ -101,9 +101,9 @@ export class MusicMode {
   /**
    * Converts to API-compatible value format for command payloads.
    */
-  toApiValue(): { modeId: number; sensitivity?: number } {
-    const value: { modeId: number; sensitivity?: number } = {
-      modeId: this._modeId,
+  toApiValue(): { musicMode: number; sensitivity?: number } {
+    const value: { musicMode: number; sensitivity?: number } = {
+      musicMode: this._modeId,
     };
 
     if (this._sensitivity !== undefined) {

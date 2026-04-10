@@ -119,6 +119,13 @@ interface GoveeCapability {
       name: string;
       value: unknown;
     }>;
+    fields?: Array<{
+      fieldName: string;
+      dataType: string;
+      options?: Array<{ name: string; value: unknown }>;
+      range?: { min: number; max: number; precision: number };
+    }>;
+    range?: { min: number; max: number; precision: number };
   };
 }
 ```

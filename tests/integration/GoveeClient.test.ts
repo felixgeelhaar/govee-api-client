@@ -576,7 +576,7 @@ describe('GoveeClient Integration Tests', () => {
 
       expect(capturedCommand.capability.type).toBe('devices.capabilities.music_setting');
       expect(capturedCommand.capability.instance).toBe('musicMode');
-      expect(capturedCommand.capability.value).toEqual({ modeId: 1, sensitivity: 75 });
+      expect(capturedCommand.capability.value).toEqual({ musicMode: 1, sensitivity: 75 });
     });
 
     it('should set nightlight toggle', async () => {

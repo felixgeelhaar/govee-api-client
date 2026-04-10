@@ -161,13 +161,13 @@ describe('Advanced Light Control Integration Tests', () => {
     it('should serialize to API format correctly', () => {
       const modeWithSensitivity = new MusicMode(1, 90);
       expect(modeWithSensitivity.toApiValue()).toEqual({
-        modeId: 1,
+        musicMode: 1,
         sensitivity: 90,
       });
 
       const modeWithoutSensitivity = new MusicMode(2);
       expect(modeWithoutSensitivity.toApiValue()).toEqual({
-        modeId: 2,
+        musicMode: 2,
       });
     });
 
@@ -242,7 +242,7 @@ describe('Advanced Light Control Integration Tests', () => {
       const command = CommandFactory.musicMode(mode);
 
       expect(command.name).toBe('musicMode');
-      expect(command.value).toEqual({ modeId: 1, sensitivity: 75 });
+      expect(command.value).toEqual({ musicMode: 1, sensitivity: 75 });
     });
 
     it('should create ToggleCommand', () => {
