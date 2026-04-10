@@ -307,8 +307,8 @@ describe('GoveeDeviceRepository Integration Tests', () => {
               instance: 'segmentedColorRgb',
               state: {
                 value: [
-                  { segment: 0, rgb: 255 * 65536 },
-                  { segment: 1, rgb: 255 * 256 },
+                  { segment: [0], rgb: 255 * 65536 },
+                  { segment: [1], rgb: 255 * 256 },
                 ],
               },
             },

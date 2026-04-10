@@ -544,12 +544,18 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       value = cmdObj.value;
     } else if (cmdObj.name === 'segmentedColorRgb') {
       instance = 'segmentedColorRgb';
-      value = Array.isArray(cmdObj.value)
-        ? cmdObj.value.map((seg: { segment: number; rgb: unknown }) => ({
-            segment: seg.segment,
-            rgb: this.packColorRgbValue(seg.rgb),
-          }))
-        : cmdObj.value;
+      if (Array.isArray(cmdObj.value)) {
+        const grouped = new Map<number, number[]>();
+        for (const seg of cmdObj.value as Array<{ segment: number; rgb: unknown }>) {
+          const packed = this.packColorRgbValue(seg.rgb) as number;
+          const indices = grouped.get(packed) || [];
+          indices.push(seg.segment);
+          grouped.set(packed, indices);
+        }
+        value = Array.from(grouped.entries()).map(([rgb, segment]) => ({ segment, rgb }));
+      } else {
+        value = cmdObj.value;
+      }
     } else if (cmdObj.name === 'segmentedBrightness') {
       instance = 'segmentedBrightness';
       value = cmdObj.value;
@@ -635,18 +641,20 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         };
       } else if (capability.type.includes('segment_color_setting')) {
         if (capability.instance === 'segmentedColorRgb') {
-          const segments = capability.state.value as Array<{
-            segment: number;
+          const groups = capability.state.value as Array<{
+            segment: number | number[];
             rgb: unknown;
           }>;
+          const flatSegments: SegmentColor[] = [];
+          for (const group of groups) {
+            const color = ColorRgb.fromObject(this.unpackColorRgbValue(group.rgb));
+            const indices = Array.isArray(group.segment) ? group.segment : [group.segment];
+            for (const index of indices) {
+              flatSegments.push(new SegmentColor(index, color));
+            }
+          }
           result.segmentedColorRgb = {
-            value: segments.map(
-              seg =>
-                new SegmentColor(
-                  seg.segment,
-                  ColorRgb.fromObject(this.unpackColorRgbValue(seg.rgb))
-                )
-            ),
+            value: flatSegments,
           };
         } else if (capability.instance === 'segmentedBrightness') {
           const segments = capability.state.value as Array<{
