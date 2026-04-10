@@ -544,18 +544,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       value = cmdObj.value;
     } else if (cmdObj.name === 'segmentedColorRgb') {
       instance = 'segmentedColorRgb';
-      if (Array.isArray(cmdObj.value)) {
-        const grouped = new Map<number, number[]>();
-        for (const seg of cmdObj.value as Array<{ segment: number; rgb: unknown }>) {
-          const packed = this.packColorRgbValue(seg.rgb) as number;
-          const indices = grouped.get(packed) || [];
-          indices.push(seg.segment);
-          grouped.set(packed, indices);
-        }
-        value = Array.from(grouped.entries()).map(([rgb, segment]) => ({ segment, rgb }));
-      } else {
-        value = cmdObj.value;
-      }
+      value = cmdObj.value;
     } else if (cmdObj.name === 'segmentedBrightness') {
       instance = 'segmentedBrightness';
       value = cmdObj.value;

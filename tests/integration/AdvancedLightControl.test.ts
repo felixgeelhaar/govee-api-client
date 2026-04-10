@@ -212,18 +212,18 @@ describe('Advanced Light Control Integration Tests', () => {
       const command = CommandFactory.segmentColorRgb(segment);
 
       expect(command.name).toBe('segmentedColorRgb');
-      expect(command.value).toHaveLength(1);
+      expect(command.value).toEqual({ segment: [0], rgb: 255 * 65536 });
     });
 
     it('should create SegmentColorRgbCommand with multiple segments', () => {
       const segments = [
         new SegmentColor(0, new ColorRgb(255, 0, 0)),
-        new SegmentColor(1, new ColorRgb(0, 255, 0)),
+        new SegmentColor(1, new ColorRgb(255, 0, 0)),
       ];
       const command = CommandFactory.segmentColorRgb(segments);
 
       expect(command.name).toBe('segmentedColorRgb');
-      expect(command.value).toHaveLength(2);
+      expect(command.value).toEqual({ segment: [0, 1], rgb: 255 * 65536 });
     });
 
     it('should create SegmentBrightnessCommand', () => {

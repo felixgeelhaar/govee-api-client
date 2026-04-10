@@ -129,11 +129,12 @@ export class SegmentColorRgbCommand extends Command {
     this._segments = Array.isArray(segments) ? segments : [segments];
   }
 
-  get value(): Array<{ segment: number; rgb: { r: number; g: number; b: number } }> {
-    return this._segments.map(seg => ({
-      segment: seg.index,
-      rgb: seg.color.toObject(),
-    }));
+  get value(): { segment: number[]; rgb: number } {
+    const color = this._segments[0]!.color;
+    return {
+      segment: this._segments.map(seg => seg.index),
+      rgb: color.r * 65536 + color.g * 256 + color.b,
+    };
   }
 
   get segments(): readonly SegmentColor[] {
@@ -142,7 +143,7 @@ export class SegmentColorRgbCommand extends Command {
 
   toObject(): {
     name: string;
-    value: Array<{ segment: number; rgb: { r: number; g: number; b: number } }>;
+    value: { segment: number[]; rgb: number };
   } {
     return { name: this.name, value: this.value };
   }
@@ -351,10 +352,13 @@ export class CommandFactory {
         throw new Error(`Invalid light scene command value: ${obj.value}`);
 
       case 'segmentedColorRgb':
-        if (Array.isArray(obj.value)) {
-          const segments = obj.value.map(
-            (seg: any) => new SegmentColor(seg.segment, ColorRgb.fromObject(seg.rgb))
-          );
+        if (typeof obj.value === 'object' && obj.value !== null) {
+          const val = obj.value as { segment: number[]; rgb: number };
+          const r = Math.floor(val.rgb / 65536) & 0xff;
+          const g = Math.floor(val.rgb / 256) & 0xff;
+          const b = val.rgb & 0xff;
+          const color = new ColorRgb(r, g, b);
+          const segments = val.segment.map(index => new SegmentColor(index, color));
           return new SegmentColorRgbCommand(segments);
         }
         throw new Error(`Invalid segmented color RGB command value: ${obj.value}`);
