@@ -217,6 +217,25 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(state.getColorTemperature()?.kelvin).toBe(2700);
     });
 
+    it('should accept state responses that use msg and payload', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+          return HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: mockStateResponse.data,
+          });
+        })
+      );
+
+      const state = await repository.findState('device123', 'H6056');
+
+      expect(state.deviceId).toBe('device123');
+      expect(state.model).toBe('H6056');
+      expect(state.getPowerState()).toBe('on');
+      expect(state.getBrightness()?.level).toBe(75);
+    });
+
     it('should handle device offline state', async () => {
       const offlineStateResponse = {
         ...mockStateResponse,

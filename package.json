@@ -1,6 +1,6 @@
 {
   "name": "@felixgeelhaar/govee-api-client",
-  "version": "3.1.13",
+  "version": "3.1.14",
   "description": "Enterprise-grade TypeScript client library for the Govee Developer REST API",
   "type": "module",
   "main": "dist/index.js",

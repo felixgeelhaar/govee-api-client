@@ -47,16 +47,55 @@ export const GoveeStateCapabilitySchema = z.object({
   }),
 });
 
-// Device state API response schema
-export const GoveeStateResponseSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  data: z.object({
-    device: z.string().min(1, 'Device ID must be a non-empty string'),
-    sku: z.string().min(1, 'SKU must be a non-empty string'),
-    capabilities: z.array(GoveeStateCapabilitySchema),
-  }),
+const GoveeStatePayloadSchema = z.object({
+  device: z.string().min(1, 'Device ID must be a non-empty string'),
+  sku: z.string().min(1, 'SKU must be a non-empty string'),
+  capabilities: z.array(GoveeStateCapabilitySchema),
 });
+
+// Device state API response schema
+export const GoveeStateResponseSchema = z
+  .object({
+    code: z.number(),
+    message: z.string().optional(),
+    msg: z.string().optional(),
+    data: z.unknown().optional(),
+    payload: z.unknown().optional(),
+  })
+  .transform((response, ctx) => {
+    const message = response.message ?? response.msg;
+
+    if (typeof message !== 'string') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'State response must include either a message or msg field',
+        path: ['message'],
+      });
+    }
+
+    const payload = response.data ?? response.payload;
+    const parsedPayload = GoveeStatePayloadSchema.safeParse(payload);
+
+    if (!parsedPayload.success) {
+      for (const issue of parsedPayload.error.issues) {
+        ctx.addIssue({
+          ...issue,
+          path: ['data', ...issue.path],
+        });
+      }
+      return z.NEVER;
+    }
+
+    if (typeof message !== 'string') {
+      return z.NEVER;
+    }
+
+    return {
+      ...response,
+      message,
+      data: parsedPayload.data,
+    };
+  });
 
 // Command API response schema
 export const GoveeCommandResponseSchema = z
