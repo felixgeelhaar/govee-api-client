@@ -229,6 +229,29 @@ describe('GoveeClient Integration Tests', () => {
       expect(state.getBrightness()?.level).toBe(75);
     });
 
+    it('should get device state when the API returns msg and payload', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+          return HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: {
+              ...mockStateResponse.data,
+              sku: 'H6056',
+            },
+          });
+        })
+      );
+
+      const state = await client.getDeviceState('living-room-123', 'H6056');
+
+      expect(state.deviceId).toBe('living-room-123');
+      expect(state.model).toBe('H6056');
+      expect(state.online).toBe(true);
+      expect(state.getPowerState()).toBe('on');
+      expect(state.getBrightness()?.level).toBe(75);
+    });
+
     it('should check if device is online', async () => {
       const isOnline = await client.isDeviceOnline('living-room-123', 'H6159');
 
