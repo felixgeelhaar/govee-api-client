@@ -504,15 +504,19 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
 
   async findSnapshots(deviceId: string, sku: string): Promise<Snapshot[]> {
     return this.findDynamicScenesByInstance<Snapshot>(
-      deviceId, sku, 'snapshot',
-      (opt) => new Snapshot(opt.value.id, opt.value.paramId, opt.name),
+      deviceId,
+      sku,
+      'snapshot',
+      opt => new Snapshot(opt.value.id, opt.value.paramId, opt.name)
     );
   }
 
   async findDiyScenes(deviceId: string, sku: string): Promise<DiyScene[]> {
     return this.findDynamicScenesByInstance<DiyScene>(
-      deviceId, sku, 'diyScene',
-      (opt) => new DiyScene(opt.value.id, opt.value.paramId, opt.name),
+      deviceId,
+      sku,
+      'diyScene',
+      opt => new DiyScene(opt.value.id, opt.value.paramId, opt.name)
     );
   }
 
@@ -524,10 +528,13 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     deviceId: string,
     sku: string,
     instanceName: string,
-    factory: (option: { name: string; value: { id: number; paramId: number } }) => T,
+    factory: (option: { name: string; value: { id: number; paramId: number } }) => T
   ): Promise<T[]> {
     this.validateDeviceParams(deviceId, sku);
-    this.logger?.info({ deviceId, sku, instance: instanceName }, `Fetching ${instanceName} entries`);
+    this.logger?.info(
+      { deviceId, sku, instance: instanceName },
+      `Fetching ${instanceName} entries`
+    );
 
     try {
       const requestBody = {
@@ -541,7 +548,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       if (!validationResult.success) {
         this.logger?.error(
           { zodError: validationResult.error, rawData: response.data },
-          `${instanceName} response validation failed`,
+          `${instanceName} response validation failed`
         );
         throw ValidationError.fromZodError(validationResult.error, response.data);
       }
@@ -552,16 +559,13 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
           `API returned error code ${apiResponse.code}: ${apiResponse.msg}`,
           response.status,
           apiResponse.code,
-          apiResponse.msg || 'Unknown error',
+          apiResponse.msg || 'Unknown error'
         );
       }
 
       const results: T[] = [];
       for (const capability of apiResponse.payload.capabilities) {
-        if (
-          capability.type.includes('dynamic_scene') &&
-          capability.instance === instanceName
-        ) {
+        if (capability.type.includes('dynamic_scene') && capability.instance === instanceName) {
           for (const option of capability.parameters.options) {
             results.push(factory(option));
           }
@@ -570,7 +574,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
 
       this.logger?.info(
         { deviceId, sku, count: results.length },
-        `Successfully fetched ${instanceName} entries`,
+        `Successfully fetched ${instanceName} entries`
       );
       return results;
     } catch (error) {

@@ -427,9 +427,7 @@ export class CommandFactory {
       case 'diyScene':
         if (typeof obj.value === 'object' && obj.value !== null) {
           const diyValue = obj.value as { id: number; paramId: number };
-          return new DiySceneCommand(
-            new DiyScene(diyValue.id, diyValue.paramId, 'DIY Scene')
-          );
+          return new DiySceneCommand(new DiyScene(diyValue.id, diyValue.paramId, 'DIY Scene'));
         }
         throw new Error(`Invalid DIY scene command value: ${obj.value}`);
 
