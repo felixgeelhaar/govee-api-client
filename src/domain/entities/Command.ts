@@ -3,6 +3,8 @@ import {
   ColorTemperature,
   Brightness,
   LightScene,
+  Snapshot,
+  DiyScene,
   SegmentColor,
   MusicMode,
 } from '../value-objects';
@@ -112,6 +114,60 @@ export class LightSceneCommand extends Command {
   }
 
   get scene(): LightScene {
+    return this._scene;
+  }
+
+  toObject(): { name: string; value: { paramId: number; id: number } } {
+    return { name: this.name, value: this.value };
+  }
+}
+
+/**
+ * Activates a user-saved snapshot. Shares the API payload shape with
+ * {@link LightSceneCommand} (both live under `dynamic_scene`) but uses
+ * `instance: "snapshot"` instead of `"lightScene"`.
+ */
+export class SnapshotCommand extends Command {
+  readonly name = 'snapshot';
+  private readonly _snapshot: Snapshot;
+
+  constructor(snapshot: Snapshot) {
+    super();
+    this._snapshot = snapshot;
+  }
+
+  get value(): { paramId: number; id: number } {
+    return this._snapshot.toApiValue();
+  }
+
+  get snapshot(): Snapshot {
+    return this._snapshot;
+  }
+
+  toObject(): { name: string; value: { paramId: number; id: number } } {
+    return { name: this.name, value: this.value };
+  }
+}
+
+/**
+ * Activates a user-designed DIY scene. Shares the API payload shape
+ * with {@link LightSceneCommand} (both live under `dynamic_scene`) but
+ * uses `instance: "diyScene"`.
+ */
+export class DiySceneCommand extends Command {
+  readonly name = 'diyScene';
+  private readonly _scene: DiyScene;
+
+  constructor(scene: DiyScene) {
+    super();
+    this._scene = scene;
+  }
+
+  get value(): { paramId: number; id: number } {
+    return this._scene.toApiValue();
+  }
+
+  get scene(): DiyScene {
     return this._scene;
   }
 
@@ -271,6 +327,14 @@ export class CommandFactory {
     return new LightSceneCommand(scene);
   }
 
+  static snapshot(snapshot: Snapshot): SnapshotCommand {
+    return new SnapshotCommand(snapshot);
+  }
+
+  static diyScene(scene: DiyScene): DiySceneCommand {
+    return new DiySceneCommand(scene);
+  }
+
   static segmentColorRgb(segments: SegmentColor | SegmentColor[]): SegmentColorRgbCommand {
     return new SegmentColorRgbCommand(segments);
   }
@@ -350,6 +414,24 @@ export class CommandFactory {
           return new LightSceneCommand(new LightScene(sceneValue.id, sceneValue.paramId, 'Scene'));
         }
         throw new Error(`Invalid light scene command value: ${obj.value}`);
+
+      case 'snapshot':
+        if (typeof obj.value === 'object' && obj.value !== null) {
+          const snapshotValue = obj.value as { id: number; paramId: number };
+          return new SnapshotCommand(
+            new Snapshot(snapshotValue.id, snapshotValue.paramId, 'Snapshot')
+          );
+        }
+        throw new Error(`Invalid snapshot command value: ${obj.value}`);
+
+      case 'diyScene':
+        if (typeof obj.value === 'object' && obj.value !== null) {
+          const diyValue = obj.value as { id: number; paramId: number };
+          return new DiySceneCommand(
+            new DiyScene(diyValue.id, diyValue.paramId, 'DIY Scene')
+          );
+        }
+        throw new Error(`Invalid DIY scene command value: ${obj.value}`);
 
       case 'segmentedColorRgb':
         if (typeof obj.value === 'object' && obj.value !== null) {

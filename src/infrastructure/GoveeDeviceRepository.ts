@@ -16,6 +16,8 @@ import {
   ColorTemperature,
   Brightness,
   LightScene,
+  Snapshot,
+  DiyScene,
   SegmentColor,
   MusicMode,
 } from '../domain/value-objects';
@@ -500,6 +502,83 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
   }
 
+  async findSnapshots(deviceId: string, sku: string): Promise<Snapshot[]> {
+    return this.findDynamicScenesByInstance<Snapshot>(
+      deviceId, sku, 'snapshot',
+      (opt) => new Snapshot(opt.value.id, opt.value.paramId, opt.name),
+    );
+  }
+
+  async findDiyScenes(deviceId: string, sku: string): Promise<DiyScene[]> {
+    return this.findDynamicScenesByInstance<DiyScene>(
+      deviceId, sku, 'diyScene',
+      (opt) => new DiyScene(opt.value.id, opt.value.paramId, opt.name),
+    );
+  }
+
+  /**
+   * Shared helper for querying the /device/scenes endpoint and
+   * extracting entries by capability instance name.
+   */
+  private async findDynamicScenesByInstance<T>(
+    deviceId: string,
+    sku: string,
+    instanceName: string,
+    factory: (option: { name: string; value: { id: number; paramId: number } }) => T,
+  ): Promise<T[]> {
+    this.validateDeviceParams(deviceId, sku);
+    this.logger?.info({ deviceId, sku, instance: instanceName }, `Fetching ${instanceName} entries`);
+
+    try {
+      const requestBody = {
+        requestId: this.generateRequestId(),
+        payload: { sku, device: deviceId },
+      };
+
+      const response = await this.httpClient.post('/router/api/v1/device/scenes', requestBody);
+      const validationResult = GoveeDynamicScenesResponseSchema.safeParse(response.data);
+
+      if (!validationResult.success) {
+        this.logger?.error(
+          { zodError: validationResult.error, rawData: response.data },
+          `${instanceName} response validation failed`,
+        );
+        throw ValidationError.fromZodError(validationResult.error, response.data);
+      }
+
+      const apiResponse = validationResult.data;
+      if (apiResponse.code !== 200) {
+        throw new GoveeApiError(
+          `API returned error code ${apiResponse.code}: ${apiResponse.msg}`,
+          response.status,
+          apiResponse.code,
+          apiResponse.msg || 'Unknown error',
+        );
+      }
+
+      const results: T[] = [];
+      for (const capability of apiResponse.payload.capabilities) {
+        if (
+          capability.type.includes('dynamic_scene') &&
+          capability.instance === instanceName
+        ) {
+          for (const option of capability.parameters.options) {
+            results.push(factory(option));
+          }
+        }
+      }
+
+      this.logger?.info(
+        { deviceId, sku, count: results.length },
+        `Successfully fetched ${instanceName} entries`,
+      );
+      return results;
+    } catch (error) {
+      this.logger?.error(error, `Failed to fetch ${instanceName} entries`);
+      throw error;
+    }
+  }
+
   private validateDeviceParams(deviceId: string, sku: string): void {
     if (!deviceId || typeof deviceId !== 'string' || deviceId.trim().length === 0) {
       throw new Error('Device ID must be a non-empty string');
@@ -523,6 +602,8 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       color: 'devices.capabilities.color_setting',
       colorTem: 'devices.capabilities.color_setting',
       lightScene: 'devices.capabilities.dynamic_scene',
+      snapshot: 'devices.capabilities.dynamic_scene',
+      diyScene: 'devices.capabilities.dynamic_scene',
       segmentedColorRgb: 'devices.capabilities.segment_color_setting',
       segmentedBrightness: 'devices.capabilities.segment_color_setting',
       musicMode: 'devices.capabilities.music_setting',
@@ -548,6 +629,12 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       value = cmdObj.value;
     } else if (cmdObj.name === 'lightScene') {
       instance = 'lightScene';
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'snapshot') {
+      instance = 'snapshot';
+      value = cmdObj.value;
+    } else if (cmdObj.name === 'diyScene') {
+      instance = 'diyScene';
       value = cmdObj.value;
     } else if (cmdObj.name === 'segmentedColorRgb') {
       instance = 'segmentedColorRgb';

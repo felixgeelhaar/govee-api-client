@@ -21,6 +21,8 @@ export {
   ColorCommand,
   ColorTemperatureCommand,
   LightSceneCommand,
+  SnapshotCommand,
+  DiySceneCommand,
   SegmentColorRgbCommand,
   SegmentBrightnessCommand,
   MusicModeCommand,

@@ -12,6 +12,8 @@ export {
   ColorCommand,
   ColorTemperatureCommand,
   LightSceneCommand,
+  SnapshotCommand,
+  DiySceneCommand,
   SegmentColorRgbCommand,
   SegmentBrightnessCommand,
   MusicModeCommand,
@@ -37,6 +39,8 @@ export {
   ColorTemperature,
   Brightness,
   LightScene,
+  Snapshot,
+  DiyScene,
   SegmentColor,
   MusicMode,
 } from './domain/value-objects';

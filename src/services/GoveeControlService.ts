@@ -8,6 +8,8 @@ import {
   ColorTemperature,
   Brightness,
   LightScene,
+  Snapshot,
+  DiyScene,
   SegmentColor,
   MusicMode,
 } from '../domain/value-objects';
@@ -256,6 +258,50 @@ export class GoveeControlService {
   async setLightScene(deviceId: string, model: string, scene: LightScene): Promise<void> {
     this.logger?.info({ deviceId, model, scene: scene.name }, 'Setting device light scene');
     await this.sendCommand(deviceId, model, CommandFactory.lightScene(scene));
+  }
+
+  /**
+   * Retrieves user-saved snapshots for a specific device
+   */
+  async getSnapshots(deviceId: string, model: string): Promise<Snapshot[]> {
+    this.validateDeviceParams(deviceId, model);
+    this.logger?.info({ deviceId, model }, 'Getting snapshots');
+
+    return this.rateLimiter.execute(async () => {
+      const snapshots = await this.repository.findSnapshots(deviceId, model);
+      this.logger?.info({ deviceId, model, count: snapshots.length }, 'Retrieved snapshots');
+      return snapshots;
+    });
+  }
+
+  /**
+   * Activates a user-saved snapshot on a device
+   */
+  async setSnapshot(deviceId: string, model: string, snapshot: Snapshot): Promise<void> {
+    this.logger?.info({ deviceId, model, snapshot: snapshot.name }, 'Setting device snapshot');
+    await this.sendCommand(deviceId, model, CommandFactory.snapshot(snapshot));
+  }
+
+  /**
+   * Retrieves user-designed DIY scenes for a specific device
+   */
+  async getDiyScenes(deviceId: string, model: string): Promise<DiyScene[]> {
+    this.validateDeviceParams(deviceId, model);
+    this.logger?.info({ deviceId, model }, 'Getting DIY scenes');
+
+    return this.rateLimiter.execute(async () => {
+      const scenes = await this.repository.findDiyScenes(deviceId, model);
+      this.logger?.info({ deviceId, model, count: scenes.length }, 'Retrieved DIY scenes');
+      return scenes;
+    });
+  }
+
+  /**
+   * Activates a user-designed DIY scene on a device
+   */
+  async setDiyScene(deviceId: string, model: string, scene: DiyScene): Promise<void> {
+    this.logger?.info({ deviceId, model, scene: scene.name }, 'Setting device DIY scene');
+    await this.sendCommand(deviceId, model, CommandFactory.diyScene(scene));
   }
 
   /**

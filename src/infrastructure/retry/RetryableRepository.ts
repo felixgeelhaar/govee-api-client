@@ -3,7 +3,7 @@ import { IGoveeDeviceRepository } from '../../domain/repositories/IGoveeDeviceRe
 import { GoveeDevice } from '../../domain/entities/GoveeDevice';
 import { DeviceState } from '../../domain/entities/DeviceState';
 import { Command } from '../../domain/entities/Command';
-import { LightScene } from '../../domain/value-objects';
+import { LightScene, Snapshot, DiyScene } from '../../domain/value-objects';
 import {
   RetryExecutor,
   RetryableRequest,
@@ -121,6 +121,38 @@ export class RetryableRepository implements IGoveeDeviceRepository {
       execute: () => this.repository.findDynamicScenes(deviceId, sku),
       context: {
         operation: 'findDynamicScenes',
+        deviceId,
+        sku,
+        timestamp: new Date().toISOString(),
+      },
+    };
+
+    return this.retryExecutor.execute(request);
+  }
+
+  async findSnapshots(deviceId: string, sku: string): Promise<Snapshot[]> {
+    const request: RetryableRequest<Snapshot[]> = {
+      id: this.generateRequestId('findSnapshots'),
+      description: `Fetch snapshots for device ${deviceId} (${sku})`,
+      execute: () => this.repository.findSnapshots(deviceId, sku),
+      context: {
+        operation: 'findSnapshots',
+        deviceId,
+        sku,
+        timestamp: new Date().toISOString(),
+      },
+    };
+
+    return this.retryExecutor.execute(request);
+  }
+
+  async findDiyScenes(deviceId: string, sku: string): Promise<DiyScene[]> {
+    const request: RetryableRequest<DiyScene[]> = {
+      id: this.generateRequestId('findDiyScenes'),
+      description: `Fetch DIY scenes for device ${deviceId} (${sku})`,
+      execute: () => this.repository.findDiyScenes(deviceId, sku),
+      context: {
+        operation: 'findDiyScenes',
         deviceId,
         sku,
         timestamp: new Date().toISOString(),
