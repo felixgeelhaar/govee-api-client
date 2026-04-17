@@ -9,6 +9,8 @@ import {
   ColorTemperature,
   Brightness,
   LightScene,
+  Snapshot,
+  DiyScene,
   SegmentColor,
   MusicMode,
 } from './domain/value-objects';
@@ -165,6 +167,22 @@ export class GoveeClient {
 
   async setLightScene(deviceId: string, model: string, scene: LightScene): Promise<void> {
     return this.controlService.setLightScene(deviceId, model, scene);
+  }
+
+  async getSnapshots(deviceId: string, model: string): Promise<Snapshot[]> {
+    return this.controlService.getSnapshots(deviceId, model);
+  }
+
+  async setSnapshot(deviceId: string, model: string, snapshot: Snapshot): Promise<void> {
+    return this.controlService.setSnapshot(deviceId, model, snapshot);
+  }
+
+  async getDiyScenes(deviceId: string, model: string): Promise<DiyScene[]> {
+    return this.controlService.getDiyScenes(deviceId, model);
+  }
+
+  async setDiyScene(deviceId: string, model: string, scene: DiyScene): Promise<void> {
+    return this.controlService.setDiyScene(deviceId, model, scene);
   }
 
   async setSegmentColors(
