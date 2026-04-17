@@ -487,7 +487,15 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       for (const capability of apiResponse.payload.capabilities) {
         if (capability.type.includes('dynamic_scene') && capability.instance === 'lightScene') {
           for (const option of capability.parameters.options) {
-            scenes.push(new LightScene(option.value.id, option.value.paramId, option.name));
+            const parsedValue = this.parseStructuredDynamicSceneValue(option.value);
+            if (!parsedValue) {
+              this.logger?.debug(
+                { deviceId, sku, instance: capability.instance, optionName: option.name, value: option.value },
+                'Skipping lightScene entry with unsupported value shape'
+              );
+              continue;
+            }
+            scenes.push(new LightScene(parsedValue.id, parsedValue.paramId, option.name));
           }
         }
       }
@@ -504,17 +512,23 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
   }
 
   async findSnapshots(deviceId: string, sku: string): Promise<Snapshot[]> {
-    return this.findDynamicScenesByInstance<Snapshot>(
+    const snapshots = await this.findDynamicScenesByInstance<Snapshot>(
       deviceId,
       sku,
       'snapshot',
       opt => new Snapshot(opt.value.id, opt.value.paramId, opt.name)
     );
+
+    if (snapshots.length > 0) {
+      return snapshots;
+    }
+
+    return this.findSnapshotsFromDeviceCapabilities(deviceId, sku);
   }
 
   async findDiyScenes(deviceId: string, sku: string): Promise<DiyScene[]> {
     this.validateDeviceParams(deviceId, sku);
-    this.logger?.info({ deviceId, sku }, 'Fetching diyScene entries');
+    this.logger?.info({ deviceId, sku }, 'Fetching DIY scenes');
 
     try {
       const requestBody = {
@@ -531,7 +545,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       if (!validationResult.success) {
         this.logger?.error(
           { zodError: validationResult.error, rawData: response.data },
-          'diyScene response validation failed'
+          'DIY scenes response validation failed'
         );
         throw ValidationError.fromZodError(validationResult.error, response.data);
       }
@@ -547,30 +561,29 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       }
 
       const scenes: DiyScene[] = [];
-
       for (const capability of apiResponse.payload.capabilities) {
         if (
-          capability.instance === 'diyScene' &&
-          (capability.type === 'devices.capabilities.diy_color_setting' ||
-            capability.type === 'devices.capabilities.dynamic_scene')
+          (capability.type.includes('dynamic_scene') || capability.type.includes('diy_color_setting')) &&
+          capability.instance === 'diyScene'
         ) {
           for (const option of capability.parameters.options) {
-            if (typeof option.value === 'number') {
-              scenes.push(new DiyScene(option.value, option.value, option.name));
-            } else {
-              scenes.push(new DiyScene(option.value.id, option.value.paramId, option.name));
+            const parsedValue = this.parseStructuredDynamicSceneValue(option.value);
+            if (!parsedValue) {
+              this.logger?.debug(
+                { deviceId, sku, instance: capability.instance, optionName: option.name, value: option.value },
+                'Skipping diyScene entry with unsupported value shape'
+              );
+              continue;
             }
+            scenes.push(new DiyScene(parsedValue.id, parsedValue.paramId, option.name));
           }
         }
       }
 
-      this.logger?.info(
-        { deviceId, sku, sceneCount: scenes.length },
-        'Successfully fetched diyScene entries'
-      );
+      this.logger?.info({ deviceId, sku, count: scenes.length }, 'Successfully fetched DIY scenes');
       return scenes;
     } catch (error) {
-      this.logger?.error(error, 'Failed to fetch diyScene entries');
+      this.logger?.error(error, 'Failed to fetch DIY scenes');
       throw error;
     }
   }
@@ -583,7 +596,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     deviceId: string,
     sku: string,
     instanceName: string,
-    factory: (option: { name: string; value: { id: number; paramId: number } }) => T
+    factory: (option: { name: string; value: { id: number; paramId: number } }) => T | null
   ): Promise<T[]> {
     this.validateDeviceParams(deviceId, sku);
     this.logger?.info(
@@ -622,7 +635,25 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       for (const capability of apiResponse.payload.capabilities) {
         if (capability.type.includes('dynamic_scene') && capability.instance === instanceName) {
           for (const option of capability.parameters.options) {
-            results.push(factory(option));
+            const parsedValue = this.parseStructuredDynamicSceneValue(option.value);
+            if (!parsedValue) {
+              this.logger?.debug(
+                {
+                  deviceId,
+                  sku,
+                  instance: instanceName,
+                  optionName: option.name,
+                  value: option.value,
+                },
+                'Skipping dynamic scene entry with unsupported value shape'
+              );
+              continue;
+            }
+
+            const result = factory({ name: option.name, value: parsedValue });
+            if (result) {
+              results.push(result);
+            }
           }
         }
       }
@@ -638,6 +669,54 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
   }
 
+  private async findSnapshotsFromDeviceCapabilities(
+    deviceId: string,
+    sku: string
+  ): Promise<Snapshot[]> {
+    this.validateDeviceParams(deviceId, sku);
+    this.logger?.info({ deviceId, sku }, 'Fetching snapshot entries from device capabilities');
+
+    const devices = await this.findAll();
+    const device = devices.find(entry => entry.deviceId === deviceId && entry.model === sku);
+    if (!device) {
+      return [];
+    }
+
+    const snapshots: Snapshot[] = [];
+    const addOptions = (options: Array<{ name: string; value: unknown }> | undefined) => {
+      if (!Array.isArray(options)) return;
+
+      for (const option of options) {
+        const parsedValue = this.parseStructuredDynamicSceneValue(option.value);
+        if (!parsedValue) {
+          this.logger?.debug(
+            { deviceId, sku, instance: 'snapshot', optionName: option.name, value: option.value },
+            'Skipping snapshot device capability entry with unsupported value shape'
+          );
+          continue;
+        }
+
+        snapshots.push(new Snapshot(parsedValue.id, parsedValue.paramId, option.name));
+      }
+    };
+
+    for (const capability of device.capabilities) {
+      if (!capability.type.includes('dynamic_scene') || capability.instance !== 'snapshot') {
+        continue;
+      }
+
+      addOptions(capability.parameters?.options);
+      for (const field of capability.parameters?.fields ?? []) {
+        addOptions(field.options);
+      }
+    }
+
+    this.logger?.info(
+      { deviceId, sku, count: snapshots.length },
+      'Successfully fetched snapshot entries from device capabilities'
+    );
+    return snapshots;
+  }
   private validateDeviceParams(deviceId: string, sku: string): void {
     if (!deviceId || typeof deviceId !== 'string' || deviceId.trim().length === 0) {
       throw new Error('Device ID must be a non-empty string');
@@ -645,6 +724,34 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     if (!sku || typeof sku !== 'string' || sku.trim().length === 0) {
       throw new Error('SKU must be a non-empty string');
     }
+  }
+
+  private parseStructuredDynamicSceneValue(
+    value: unknown
+  ): { id: number; paramId: number } | null {
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'id' in value &&
+      'paramId' in value &&
+      typeof value.id === 'number' &&
+      Number.isInteger(value.id) &&
+      value.id > 0 &&
+      typeof value.paramId === 'number' &&
+      Number.isInteger(value.paramId) &&
+      value.paramId > 0
+    ) {
+      return {
+        id: value.id,
+        paramId: value.paramId,
+      };
+    }
+
+    if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+      return { id: value, paramId: value };
+    }
+
+    return null;
   }
 
   private convertCommandToCapability(command: Command): {
@@ -841,3 +948,4 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     return result;
   }
 }
+

@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
 // Govee API Capability schema - permissive for parsing
 export const GoveeCapabilitySchema = z
@@ -16,7 +16,38 @@ export const GoveeCapabilitySchema = z
             })
           )
           .optional(),
+        fields: z
+          .array(
+            z.object({
+              fieldName: z.string(),
+              dataType: z.string().optional(),
+              options: z
+                .array(
+                  z.object({
+                    name: z.string(),
+                    value: z.unknown(),
+                  })
+                )
+                .optional(),
+              range: z
+                .object({
+                  min: z.number(),
+                  max: z.number(),
+                  precision: z.number(),
+                })
+                .optional(),
+            })
+          )
+          .optional(),
+        range: z
+          .object({
+            min: z.number(),
+            max: z.number(),
+            precision: z.number(),
+          })
+          .optional(),
       })
+      .passthrough()
       .optional(),
   })
   .passthrough();
@@ -134,6 +165,11 @@ export const GoveeSceneOptionSchema = z.object({
   value: GoveeStructuredSceneValueSchema,
 });
 
+export const GoveeAnySceneOptionSchema = z.object({
+  name: z.string(),
+  value: z.unknown(),
+});
+
 export const GoveeDiySceneOptionSchema = z.object({
   name: z.string(),
   value: z.union([z.number(), GoveeStructuredSceneValueSchema]),
@@ -145,7 +181,7 @@ export const GoveeDynamicSceneCapabilitySchema = z.object({
   instance: z.string(),
   parameters: z.object({
     dataType: z.string(),
-    options: z.array(GoveeSceneOptionSchema),
+    options: z.array(GoveeAnySceneOptionSchema),
   }),
 });
 
@@ -194,4 +230,3 @@ export type GoveeDynamicSceneCapability = z.infer<typeof GoveeDynamicSceneCapabi
 export type GoveeDiySceneCapability = z.infer<typeof GoveeDiySceneCapabilitySchema>;
 export type GoveeDynamicScenesResponse = z.infer<typeof GoveeDynamicScenesResponseSchema>;
 export type GoveeDiyScenesResponse = z.infer<typeof GoveeDiyScenesResponseSchema>;
-
