@@ -1,4 +1,4 @@
-import {
+﻿import {
   ColorRgb,
   ColorTemperature,
   Brightness,
@@ -150,9 +150,9 @@ export class SnapshotCommand extends Command {
 }
 
 /**
- * Activates a user-designed DIY scene. Shares the API payload shape
- * with {@link LightSceneCommand} (both live under `dynamic_scene`) but
- * uses `instance: "diyScene"`.
+ * Activates a user-designed DIY scene. Govee's dedicated DIY endpoint
+ * enumerates scenes as numeric IDs, and control expects that numeric
+ * ID as the command payload while still using `instance: "diyScene"`.
  */
 export class DiySceneCommand extends Command {
   readonly name = 'diyScene';
@@ -163,15 +163,15 @@ export class DiySceneCommand extends Command {
     this._scene = scene;
   }
 
-  get value(): { paramId: number; id: number } {
-    return this._scene.toApiValue();
+  get value(): number {
+    return this._scene.id;
   }
 
   get scene(): DiyScene {
     return this._scene;
   }
 
-  toObject(): { name: string; value: { paramId: number; id: number } } {
+  toObject(): { name: string; value: number } {
     return { name: this.name, value: this.value };
   }
 }
@@ -425,6 +425,9 @@ export class CommandFactory {
         throw new Error(`Invalid snapshot command value: ${obj.value}`);
 
       case 'diyScene':
+        if (typeof obj.value === 'number') {
+          return new DiySceneCommand(new DiyScene(obj.value, obj.value, 'DIY Scene'));
+        }
         if (typeof obj.value === 'object' && obj.value !== null) {
           const diyValue = obj.value as { id: number; paramId: number };
           return new DiySceneCommand(new DiyScene(diyValue.id, diyValue.paramId, 'DIY Scene'));
@@ -481,3 +484,4 @@ export class CommandFactory {
     }
   }
 }
+

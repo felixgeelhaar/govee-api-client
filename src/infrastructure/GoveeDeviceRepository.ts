@@ -33,6 +33,7 @@ import {
   GoveeStateResponseSchema,
   GoveeCommandResponseSchema,
   GoveeDynamicScenesResponseSchema,
+  GoveeDiyScenesResponseSchema,
 } from './response-schemas';
 
 interface GoveeApiConfig {
@@ -512,12 +513,66 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
   }
 
   async findDiyScenes(deviceId: string, sku: string): Promise<DiyScene[]> {
-    return this.findDynamicScenesByInstance<DiyScene>(
-      deviceId,
-      sku,
-      'diyScene',
-      opt => new DiyScene(opt.value.id, opt.value.paramId, opt.name)
-    );
+    this.validateDeviceParams(deviceId, sku);
+    this.logger?.info({ deviceId, sku }, 'Fetching diyScene entries');
+
+    try {
+      const requestBody = {
+        requestId: this.generateRequestId(),
+        payload: {
+          sku,
+          device: deviceId,
+        },
+      };
+
+      const response = await this.httpClient.post('/router/api/v1/device/diy-scenes', requestBody);
+      const validationResult = GoveeDiyScenesResponseSchema.safeParse(response.data);
+
+      if (!validationResult.success) {
+        this.logger?.error(
+          { zodError: validationResult.error, rawData: response.data },
+          'diyScene response validation failed'
+        );
+        throw ValidationError.fromZodError(validationResult.error, response.data);
+      }
+
+      const apiResponse = validationResult.data;
+      if (apiResponse.code !== 200) {
+        throw new GoveeApiError(
+          `API returned error code ${apiResponse.code}: ${apiResponse.msg}`,
+          response.status,
+          apiResponse.code,
+          apiResponse.msg || 'Unknown error'
+        );
+      }
+
+      const scenes: DiyScene[] = [];
+
+      for (const capability of apiResponse.payload.capabilities) {
+        if (
+          capability.instance === 'diyScene' &&
+          (capability.type === 'devices.capabilities.diy_color_setting' ||
+            capability.type === 'devices.capabilities.dynamic_scene')
+        ) {
+          for (const option of capability.parameters.options) {
+            if (typeof option.value === 'number') {
+              scenes.push(new DiyScene(option.value, option.value, option.name));
+            } else {
+              scenes.push(new DiyScene(option.value.id, option.value.paramId, option.name));
+            }
+          }
+        }
+      }
+
+      this.logger?.info(
+        { deviceId, sku, sceneCount: scenes.length },
+        'Successfully fetched diyScene entries'
+      );
+      return scenes;
+    } catch (error) {
+      this.logger?.error(error, 'Failed to fetch diyScene entries');
+      throw error;
+    }
   }
 
   /**
