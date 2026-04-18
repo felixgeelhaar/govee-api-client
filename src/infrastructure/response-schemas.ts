@@ -16,7 +16,38 @@ export const GoveeCapabilitySchema = z
             })
           )
           .optional(),
+        fields: z
+          .array(
+            z.object({
+              fieldName: z.string(),
+              dataType: z.string().optional(),
+              options: z
+                .array(
+                  z.object({
+                    name: z.string(),
+                    value: z.unknown(),
+                  })
+                )
+                .optional(),
+              range: z
+                .object({
+                  min: z.number(),
+                  max: z.number(),
+                  precision: z.number(),
+                })
+                .optional(),
+            })
+          )
+          .optional(),
+        range: z
+          .object({
+            min: z.number(),
+            max: z.number(),
+            precision: z.number(),
+          })
+          .optional(),
       })
+      .passthrough()
       .optional(),
   })
   .passthrough();
@@ -124,12 +155,24 @@ export const GoveeCommandResponseSchema = z
   });
 
 // Dynamic Scene option schema
+const GoveeStructuredSceneValueSchema = z.object({
+  paramId: z.number(),
+  id: z.number(),
+});
+
 export const GoveeSceneOptionSchema = z.object({
   name: z.string(),
-  value: z.object({
-    paramId: z.number(),
-    id: z.number(),
-  }),
+  value: GoveeStructuredSceneValueSchema,
+});
+
+export const GoveeAnySceneOptionSchema = z.object({
+  name: z.string(),
+  value: z.unknown(),
+});
+
+export const GoveeDiySceneOptionSchema = z.object({
+  name: z.string(),
+  value: z.union([z.number(), GoveeStructuredSceneValueSchema]),
 });
 
 // Dynamic Scenes capability schema
@@ -138,7 +181,16 @@ export const GoveeDynamicSceneCapabilitySchema = z.object({
   instance: z.string(),
   parameters: z.object({
     dataType: z.string(),
-    options: z.array(GoveeSceneOptionSchema),
+    options: z.array(GoveeAnySceneOptionSchema),
+  }),
+});
+
+export const GoveeDiySceneCapabilitySchema = z.object({
+  type: z.string(),
+  instance: z.string(),
+  parameters: z.object({
+    dataType: z.string(),
+    options: z.array(GoveeDiySceneOptionSchema),
   }),
 });
 
@@ -154,6 +206,17 @@ export const GoveeDynamicScenesResponseSchema = z.object({
   }),
 });
 
+export const GoveeDiyScenesResponseSchema = z.object({
+  requestId: z.string().optional(),
+  msg: z.string().optional(),
+  code: z.number(),
+  payload: z.object({
+    sku: z.string(),
+    device: z.string(),
+    capabilities: z.array(GoveeDiySceneCapabilitySchema),
+  }),
+});
+
 // Type exports for use in the repository
 export type GoveeCapability = z.infer<typeof GoveeCapabilitySchema>;
 export type GoveeDeviceResponse = z.infer<typeof GoveeDeviceResponseSchema>;
@@ -162,5 +225,8 @@ export type GoveeStateCapability = z.infer<typeof GoveeStateCapabilitySchema>;
 export type GoveeStateResponse = z.infer<typeof GoveeStateResponseSchema>;
 export type GoveeCommandResponse = z.infer<typeof GoveeCommandResponseSchema>;
 export type GoveeSceneOption = z.infer<typeof GoveeSceneOptionSchema>;
+export type GoveeDiySceneOption = z.infer<typeof GoveeDiySceneOptionSchema>;
 export type GoveeDynamicSceneCapability = z.infer<typeof GoveeDynamicSceneCapabilitySchema>;
+export type GoveeDiySceneCapability = z.infer<typeof GoveeDiySceneCapabilitySchema>;
 export type GoveeDynamicScenesResponse = z.infer<typeof GoveeDynamicScenesResponseSchema>;
+export type GoveeDiyScenesResponse = z.infer<typeof GoveeDiyScenesResponseSchema>;
