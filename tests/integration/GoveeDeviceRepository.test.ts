@@ -236,8 +236,11 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(state.getBrightness()?.level).toBe(75);
     });
 
-    it('should handle device offline state', async () => {
-      const offlineStateResponse = {
+    it('defaults online=true when the online capability is absent from the response', async () => {
+      // Some device models respond to /device/state without including the
+      // online capability at all. Preserve historical behavior by assuming
+      // online in that case — we got a response, after all.
+      const responseWithoutOnline = {
         ...mockStateResponse,
         data: {
           ...mockStateResponse.data,
@@ -250,17 +253,108 @@ describe('GoveeDeviceRepository Integration Tests', () => {
           ],
         },
       };
-
       server.use(
-        http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
-          return HttpResponse.json(offlineStateResponse);
-        })
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () =>
+          HttpResponse.json(responseWithoutOnline)
+        )
       );
 
       const state = await repository.findState('device123', 'H6159');
-
-      expect(state.online).toBe(true); // API assumes online if response received
+      expect(state.online).toBe(true);
       expect(state.getPowerState()).toBe('off');
+    });
+
+    it('reports online=false when the online capability state says so', async () => {
+      const offlineResponse = {
+        ...mockStateResponse,
+        data: {
+          ...mockStateResponse.data,
+          capabilities: [
+            {
+              type: 'devices.capabilities.online',
+              instance: 'online',
+              state: { value: false },
+            },
+            {
+              type: 'devices.capabilities.on_off',
+              instance: 'powerSwitch',
+              state: { value: false },
+            },
+          ],
+        },
+      };
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () =>
+          HttpResponse.json(offlineResponse)
+        )
+      );
+
+      const state = await repository.findState('device123', 'H6159');
+      expect(state.online).toBe(false);
+      expect(state.getPowerState()).toBe('off');
+    });
+
+    it('reports online=true when the online capability state says so', async () => {
+      const onlineResponse = {
+        ...mockStateResponse,
+        data: {
+          ...mockStateResponse.data,
+          capabilities: [
+            {
+              type: 'devices.capabilities.online',
+              instance: 'online',
+              state: { value: true },
+            },
+            {
+              type: 'devices.capabilities.on_off',
+              instance: 'powerSwitch',
+              state: { value: true },
+            },
+          ],
+        },
+      };
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () =>
+          HttpResponse.json(onlineResponse)
+        )
+      );
+
+      const state = await repository.findState('device123', 'H6159');
+      expect(state.online).toBe(true);
+      expect(state.getPowerState()).toBe('on');
+    });
+
+    it('tolerates non-boolean online state values (number / string)', async () => {
+      const cases: Array<{ value: unknown; expected: boolean }> = [
+        { value: 1, expected: true },
+        { value: 0, expected: false },
+        { value: 'online', expected: true },
+        { value: 'offline', expected: false },
+        { value: 'TRUE', expected: true },
+      ];
+
+      for (const { value, expected } of cases) {
+        server.use(
+          http.post(`${BASE_URL}/router/api/v1/device/state`, () =>
+            HttpResponse.json({
+              ...mockStateResponse,
+              data: {
+                ...mockStateResponse.data,
+                capabilities: [
+                  {
+                    type: 'devices.capabilities.online',
+                    instance: 'online',
+                    state: { value },
+                  },
+                ],
+              },
+            })
+          )
+        );
+
+        const state = await repository.findState('device123', 'H6159');
+        expect(state.online, `value ${JSON.stringify(value)}`).toBe(expected);
+      }
     });
 
     it('should validate device parameters', async () => {
