@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2026-04-18
+
+### Fixed
+
+- **Generic toggle state parsing**: `DeviceState.getToggle(instance)` now reads any toggle-capability instance — `nightlightToggle`, `gradientToggle`, `sceneStageToggle`, `dreamViewToggle`, and any new instance Govee adds. Previously the state parser hardcoded only the first three, silently dropping `dreamViewToggle` state from responses. Downstream consumers that queried dreamView via the Govee command path could send it but never read back its current state.
+- **Generic mode state parsing**: `DeviceState.getMode(instance)` does the same for mode-capability instances. Was hardcoded to `nightlightScene` and `presetScene` only.
+
+### Added
+
+- `DeviceState.getToggle(instance)` — generic accessor for any toggle instance.
+- `DeviceState.getMode(instance)` — generic accessor for any mode instance.
+
+### Changed
+
+- Existing named accessors (`getNightlightToggle`, `getGradientToggle`, `getSceneStageToggle`, `getNightlightScene`, `getPresetScene`) now delegate to the new generic methods. Behavior is unchanged; they remain on the public API for backwards compatibility.
+
+### Tests
+
+- 3 new integration tests covering `getToggle` with `dreamViewToggle` + unknown-future-instance fallback, `getMode` with mixed numeric/string values, and a regression guard that the named accessors still work on a mixed-capability state response.
+
 ## [3.3.0] - 2026-04-18
 
 ### Fixed

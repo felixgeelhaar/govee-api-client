@@ -659,6 +659,124 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(sceneStageEnabled).toBe(false);
     });
 
+    it('reads dreamViewToggle and any future toggle instance via getToggle(instance)', async () => {
+      // The named accessors (getNightlightToggle etc.) only covered three
+      // toggle instances. Govee devices like RGB IC strips expose
+      // dreamViewToggle, and future firmware may add more. This test
+      // asserts we can read any instance generically.
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () =>
+          HttpResponse.json({
+            code: 200,
+            message: 'Success',
+            data: {
+              device: 'device123',
+              sku: 'H6159',
+              capabilities: [
+                {
+                  type: 'devices.capabilities.toggle',
+                  instance: 'dreamViewToggle',
+                  state: { value: 1 },
+                },
+                {
+                  type: 'devices.capabilities.toggle',
+                  instance: 'someFutureToggle',
+                  state: { value: false },
+                },
+              ],
+            },
+          })
+        )
+      );
+
+      const state = await repository.findState('device123', 'H6159');
+      expect(state.getToggle('dreamViewToggle')).toBe(true);
+      expect(state.getToggle('someFutureToggle')).toBe(false);
+      expect(state.getToggle('notReportedToggle')).toBeUndefined();
+    });
+
+    it('named toggle accessors delegate to getToggle (regression guard)', async () => {
+      // getNightlightToggle / getGradientToggle / getSceneStageToggle were
+      // previously hardcoded in the state parser. After the generic
+      // refactor, they're thin wrappers around getToggle(). Verify the
+      // backwards-compat shims still work on a mixed-capability response.
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () =>
+          HttpResponse.json({
+            code: 200,
+            message: 'Success',
+            data: {
+              device: 'device123',
+              sku: 'H6159',
+              capabilities: [
+                {
+                  type: 'devices.capabilities.toggle',
+                  instance: 'nightlightToggle',
+                  state: { value: true },
+                },
+                {
+                  type: 'devices.capabilities.toggle',
+                  instance: 'gradientToggle',
+                  state: { value: 0 },
+                },
+                {
+                  type: 'devices.capabilities.toggle',
+                  instance: 'sceneStageToggle',
+                  state: { value: 1 },
+                },
+              ],
+            },
+          })
+        )
+      );
+
+      const state = await repository.findState('device123', 'H6159');
+      expect(state.getNightlightToggle()).toBe(true);
+      expect(state.getGradientToggle()).toBe(false);
+      expect(state.getSceneStageToggle()).toBe(true);
+    });
+
+    it('reads any mode instance generically via getMode(instance)', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/state`, () =>
+          HttpResponse.json({
+            code: 200,
+            message: 'Success',
+            data: {
+              device: 'device123',
+              sku: 'H6159',
+              capabilities: [
+                {
+                  type: 'devices.capabilities.mode',
+                  instance: 'nightlightScene',
+                  state: { value: 7 },
+                },
+                {
+                  type: 'devices.capabilities.mode',
+                  instance: 'presetScene',
+                  state: { value: 'sunset' },
+                },
+                {
+                  type: 'devices.capabilities.mode',
+                  instance: 'futureMode',
+                  state: { value: 42 },
+                },
+              ],
+            },
+          })
+        )
+      );
+
+      const state = await repository.findState('device123', 'H6159');
+      expect(state.getMode('nightlightScene')).toBe(7);
+      expect(state.getMode('presetScene')).toBe('sunset');
+      expect(state.getMode('futureMode')).toBe(42);
+      expect(state.getMode('notReported')).toBeUndefined();
+      // Named shims still work:
+      expect(state.getNightlightScene()).toBe(7);
+      expect(state.getPresetScene()).toBe('sunset');
+    });
+
     it('should handle state with nightlight scene capability', async () => {
       const nightlightSceneStateResponse = {
         code: 200,
