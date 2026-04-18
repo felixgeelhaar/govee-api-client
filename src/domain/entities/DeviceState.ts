@@ -156,29 +156,45 @@ export class DeviceState {
     return musicState?.value;
   }
 
-  getNightlightToggle(): boolean | undefined {
-    const toggleState = this.getProperty<ToggleState>('nightlightToggle');
+  /**
+   * Generic accessor for any toggle-capability instance (e.g. `nightlightToggle`,
+   * `gradientToggle`, `sceneStageToggle`, `dreamViewToggle`, or any instance
+   * Govee adds in the future). Returns undefined when the device did not
+   * report that instance.
+   */
+  getToggle(instance: string): boolean | undefined {
+    const toggleState = this.getProperty<ToggleState>(instance);
     return toggleState?.value;
+  }
+
+  /**
+   * Generic accessor for any mode-capability instance (e.g. `nightlightScene`,
+   * `presetScene`, or any mode instance Govee adds). Returns undefined when
+   * the device did not report that instance.
+   */
+  getMode(instance: string): string | number | undefined {
+    const modeState = this.getProperty<ModeState>(instance);
+    return modeState?.value;
+  }
+
+  getNightlightToggle(): boolean | undefined {
+    return this.getToggle('nightlightToggle');
   }
 
   getGradientToggle(): boolean | undefined {
-    const toggleState = this.getProperty<ToggleState>('gradientToggle');
-    return toggleState?.value;
+    return this.getToggle('gradientToggle');
   }
 
   getSceneStageToggle(): boolean | undefined {
-    const toggleState = this.getProperty<ToggleState>('sceneStageToggle');
-    return toggleState?.value;
+    return this.getToggle('sceneStageToggle');
   }
 
   getNightlightScene(): string | number | undefined {
-    const modeState = this.getProperty<ModeState>('nightlightScene');
-    return modeState?.value;
+    return this.getMode('nightlightScene');
   }
 
   getPresetScene(): string | number | undefined {
-    const modeState = this.getProperty<ModeState>('presetScene');
-    return modeState?.value;
+    return this.getMode('presetScene');
   }
 
   isPoweredOn(): boolean {

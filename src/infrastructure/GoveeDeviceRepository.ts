@@ -958,24 +958,21 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
           value: new MusicMode(modeValue.modeId, modeValue.sensitivity),
         };
       } else if (capability.type.includes('toggle')) {
-        if (capability.instance === 'nightlightToggle') {
-          result.nightlightToggle = {
-            value: capability.state.value === 1 || capability.state.value === true,
-          };
-        } else if (capability.instance === 'gradientToggle') {
-          result.gradientToggle = {
-            value: capability.state.value === 1 || capability.state.value === true,
-          };
-        } else if (capability.instance === 'sceneStageToggle') {
-          result.sceneStageToggle = {
+        // Store every toggle instance by its instance name so newer Govee
+        // toggles (dreamViewToggle, future additions) are readable via
+        // DeviceState.getToggle(instance) without a client-side patch.
+        if (typeof capability.instance === 'string' && capability.instance.length > 0) {
+          result[capability.instance] = {
             value: capability.state.value === 1 || capability.state.value === true,
           };
         }
       } else if (capability.type.includes('mode')) {
-        if (capability.instance === 'nightlightScene') {
-          result.nightlightScene = { value: capability.state.value as string | number };
-        } else if (capability.instance === 'presetScene') {
-          result.presetScene = { value: capability.state.value as string | number };
+        // Same generic store for mode instances. Named accessors like
+        // getNightlightScene / getPresetScene remain as thin shims.
+        if (typeof capability.instance === 'string' && capability.instance.length > 0) {
+          result[capability.instance] = {
+            value: capability.state.value as string | number,
+          };
         }
       }
     }
