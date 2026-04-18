@@ -384,12 +384,12 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       // Parse capabilities into state properties
       const stateProperties = this.mapCapabilitiesToStateProperties(apiResponse.data.capabilities);
 
-      const deviceState = new DeviceState(
-        deviceId,
-        sku,
-        true, // Assume online if we get a response
-        stateProperties
-      );
+      // Parse the device's actual online state from the online capability.
+      // Defaults to true when absent, matching pre-existing behavior — some
+      // devices don't report online state explicitly but clearly respond.
+      const online = this.parseOnlineState(apiResponse.data.capabilities);
+
+      const deviceState = new DeviceState(deviceId, sku, online, stateProperties);
 
       this.logger?.info({ deviceId, sku }, 'Successfully fetched device state');
       return deviceState;
@@ -871,6 +871,30 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
 
     return value as { r: number; g: number; b: number };
+  }
+
+  /**
+   * Read the device's actual online state from the `devices.capabilities.online`
+   * capability if present. Returns true when the capability is missing so we
+   * don't regress behavior for devices that don't report online state yet
+   * still respond to the state endpoint.
+   */
+  private parseOnlineState(
+    capabilities: Array<{ type: string; instance: string; state: { value: unknown } }>
+  ): boolean {
+    for (const capability of capabilities) {
+      if (capability.type.includes('online')) {
+        const value = capability.state.value;
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value !== 0;
+        if (typeof value === 'string') {
+          const lowered = value.toLowerCase();
+          if (lowered === 'true' || lowered === 'online' || lowered === '1') return true;
+          if (lowered === 'false' || lowered === 'offline' || lowered === '0') return false;
+        }
+      }
+    }
+    return true;
   }
 
   private mapCapabilitiesToStateProperties(

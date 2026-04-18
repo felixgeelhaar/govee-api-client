@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-04-18
+
+### Fixed
+
+- **DIY scenes on dedicated endpoint**: `findDiyScenes` now POSTs to `/router/api/v1/device/diy-scenes` (the dedicated Govee endpoint) instead of the general `/device/scenes` endpoint. DIY scenes were silently returning empty for all but the narrowest set of devices because the general endpoint does not enumerate DIY scenes.
+- **DIY command payload shape**: `DiySceneCommand.value` is now the numeric DIY scene ID expected by Govee control, not the previous `{ id, paramId }` object. Existing object-shape commands are still accepted for deserialization.
+- **Mixed scene value tolerance**: Dynamic scene parsing now tolerates a mix of structured `{ id, paramId }` values and bare numeric IDs within the same response. A single malformed option no longer invalidates the full payload — each unparseable option is skipped with a debug log.
+- **Online state parsing**: `findState` now reads the actual `devices.capabilities.online` capability value (boolean, numeric, or string form) and populates `DeviceState.online` accordingly. Previously hardcoded to `true` whenever a response was received, which masked real offline state on devices that report it. Defaults to `true` when the capability is absent to preserve backward compatibility.
+
+### Added
+
+- **Snapshot fallback from capability metadata**: `findSnapshots` now falls back to enumerating snapshots from `/user/devices` capability metadata when `/device/scenes` returns no snapshot entries. Fixes capability-driven devices like H61E5 where snapshot options are exposed through the device list rather than the scenes endpoint.
+- **DIY `diy_color_setting` capability type**: DIY scene discovery now recognizes the `devices.capabilities.diy_color_setting` capability type in addition to `devices.capabilities.dynamic_scene`.
+- **Nested parameter preservation**: Capability parameter schemas now preserve `fields` and `range` via `.passthrough()`, matching the richer responses returned by `/user/devices`.
+
+### Tests
+
+- 11 new integration tests covering the DIY endpoint path, numeric vs structured value shapes, mixed-shape tolerance, snapshot fallback, and online state parsing across boolean/numeric/string value variants.
+
 ## [3.1.13] - 2026-04-11
 
 ### Fixed
