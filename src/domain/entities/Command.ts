@@ -1,4 +1,4 @@
-﻿import {
+import {
   ColorRgb,
   ColorTemperature,
   Brightness,
@@ -484,4 +484,3 @@ export class CommandFactory {
     }
   }
 }
-

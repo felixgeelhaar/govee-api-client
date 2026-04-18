@@ -706,6 +706,260 @@ describe('GoveeDeviceRepository Integration Tests', () => {
         NetworkError
       );
     });
+
+    it('tolerates mixed scene value shapes without invalidating the whole response', async () => {
+      // Govee has been observed to return a mix of structured { id, paramId }
+      // values and bare numeric IDs within the same options array. A strict
+      // parser would fail the whole response; this client must skip the
+      // malformed entries and return what it can parse.
+      const mockResponse = {
+        code: 200,
+        msg: 'success',
+        payload: {
+          sku: 'H6159',
+          device: 'device123',
+          capabilities: [
+            {
+              type: 'devices.capabilities.dynamic_scene',
+              instance: 'lightScene',
+              parameters: {
+                dataType: 'ENUM',
+                options: [
+                  { name: 'Sunrise', value: { id: 3853, paramId: 4280 } },
+                  { name: 'Bare Numeric', value: 9001 },
+                  { name: 'Malformed', value: 'not-a-number' },
+                  { name: 'Zero', value: 0 },
+                  { name: 'Sunset', value: { id: 3854, paramId: 4281 } },
+                ],
+              },
+            },
+          ],
+        },
+      };
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/scenes`, () =>
+          HttpResponse.json(mockResponse)
+        )
+      );
+      const scenes = await repository.findDynamicScenes('device123', 'H6159');
+      expect(scenes.map(s => s.name)).toEqual(['Sunrise', 'Bare Numeric', 'Sunset']);
+      expect(scenes[1].id).toBe(9001);
+      expect(scenes[1].paramId).toBe(9001);
+    });
+  });
+
+  describe('findDiyScenes', () => {
+    const mockDiyResponse = {
+      code: 200,
+      msg: 'success',
+      payload: {
+        sku: 'H6159',
+        device: 'device123',
+        capabilities: [
+          {
+            type: 'devices.capabilities.dynamic_scene',
+            instance: 'diyScene',
+            parameters: {
+              dataType: 'ENUM',
+              options: [
+                { name: 'My Sparkles', value: 12001 },
+                { name: 'Cozy Flicker', value: 12002 },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    it('hits the dedicated /device/diy-scenes endpoint (not /device/scenes)', async () => {
+      let diyEndpointHit = false;
+      let sceneEndpointHit = false;
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/diy-scenes`, () => {
+          diyEndpointHit = true;
+          return HttpResponse.json(mockDiyResponse);
+        }),
+        http.post(`${BASE_URL}/router/api/v1/device/scenes`, () => {
+          sceneEndpointHit = true;
+          return HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: { sku: 'H6159', device: 'device123', capabilities: [] },
+          });
+        })
+      );
+
+      const scenes = await repository.findDiyScenes('device123', 'H6159');
+
+      expect(diyEndpointHit).toBe(true);
+      expect(sceneEndpointHit).toBe(false);
+      expect(scenes).toHaveLength(2);
+      expect(scenes[0].name).toBe('My Sparkles');
+      expect(scenes[0].id).toBe(12001);
+    });
+
+    it('accepts both numeric and { id, paramId } value shapes', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/diy-scenes`, () =>
+          HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: {
+              sku: 'H6159',
+              device: 'device123',
+              capabilities: [
+                {
+                  type: 'devices.capabilities.dynamic_scene',
+                  instance: 'diyScene',
+                  parameters: {
+                    dataType: 'ENUM',
+                    options: [
+                      { name: 'Numeric', value: 42 },
+                      { name: 'Structured', value: { id: 100, paramId: 200 } },
+                    ],
+                  },
+                },
+              ],
+            },
+          })
+        )
+      );
+
+      const scenes = await repository.findDiyScenes('device123', 'H6159');
+      expect(scenes).toHaveLength(2);
+      expect(scenes[0].id).toBe(42);
+      expect(scenes[0].paramId).toBe(42);
+      expect(scenes[1].id).toBe(100);
+      expect(scenes[1].paramId).toBe(200);
+    });
+
+    it('also recognizes diy_color_setting capability type', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/diy-scenes`, () =>
+          HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: {
+              sku: 'H6159',
+              device: 'device123',
+              capabilities: [
+                {
+                  type: 'devices.capabilities.diy_color_setting',
+                  instance: 'diyScene',
+                  parameters: {
+                    dataType: 'ENUM',
+                    options: [{ name: 'Custom Glow', value: 7777 }],
+                  },
+                },
+              ],
+            },
+          })
+        )
+      );
+
+      const scenes = await repository.findDiyScenes('device123', 'H6159');
+      expect(scenes).toHaveLength(1);
+      expect(scenes[0].name).toBe('Custom Glow');
+    });
+
+    it('validates device parameters', async () => {
+      await expect(repository.findDiyScenes('', 'H6159')).rejects.toThrow(
+        'Device ID must be a non-empty string'
+      );
+      await expect(repository.findDiyScenes('device123', '')).rejects.toThrow(
+        'SKU must be a non-empty string'
+      );
+    });
+
+    it('throws GoveeApiError on non-200 API response', async () => {
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/diy-scenes`, () =>
+          HttpResponse.json({ code: 1002, msg: 'Device not found' }, { status: 404 })
+        )
+      );
+      await expect(repository.findDiyScenes('device123', 'H6159')).rejects.toThrow(GoveeApiError);
+    });
+  });
+
+  describe('findSnapshots fallback', () => {
+    it('falls back to device capability metadata when /device/scenes has no snapshot entries', async () => {
+      // Capability-driven devices like H61E5 expose snapshots via the
+      // /user/devices capability list rather than /device/scenes.
+      const deviceWithSnapshotCap = {
+        code: 200,
+        message: 'Success',
+        data: [
+          {
+            device: 'device123',
+            sku: 'H61E5',
+            deviceName: 'Capability Device',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              {
+                type: 'devices.capabilities.dynamic_scene',
+                instance: 'snapshot',
+                parameters: {
+                  dataType: 'ENUM',
+                  options: [{ name: 'Sunset Preset', value: { id: 501, paramId: 502 } }],
+                },
+              },
+            ],
+          },
+        ],
+      };
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/scenes`, () =>
+          HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: { sku: 'H61E5', device: 'device123', capabilities: [] },
+          })
+        ),
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () =>
+          HttpResponse.json(deviceWithSnapshotCap)
+        )
+      );
+
+      const snapshots = await repository.findSnapshots('device123', 'H61E5');
+      expect(snapshots).toHaveLength(1);
+      expect(snapshots[0].name).toBe('Sunset Preset');
+      expect(snapshots[0].id).toBe(501);
+    });
+
+    it('prefers /device/scenes snapshot entries when present (no fallback)', async () => {
+      let userDevicesHit = false;
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/scenes`, () =>
+          HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: {
+              sku: 'H6159',
+              device: 'device123',
+              capabilities: [
+                {
+                  type: 'devices.capabilities.dynamic_scene',
+                  instance: 'snapshot',
+                  parameters: {
+                    dataType: 'ENUM',
+                    options: [{ name: 'Primary', value: { id: 1, paramId: 2 } }],
+                  },
+                },
+              ],
+            },
+          })
+        ),
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
+          userDevicesHit = true;
+          return HttpResponse.json({ code: 200, message: 'Success', data: [] });
+        })
+      );
+
+      const snapshots = await repository.findSnapshots('device123', 'H6159');
+      expect(snapshots).toHaveLength(1);
+      expect(snapshots[0].name).toBe('Primary');
+      expect(userDevicesHit).toBe(false);
+    });
   });
 
   describe('sendCommand', () => {

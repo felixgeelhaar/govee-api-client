@@ -490,7 +490,13 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
             const parsedValue = this.parseStructuredDynamicSceneValue(option.value);
             if (!parsedValue) {
               this.logger?.debug(
-                { deviceId, sku, instance: capability.instance, optionName: option.name, value: option.value },
+                {
+                  deviceId,
+                  sku,
+                  instance: capability.instance,
+                  optionName: option.name,
+                  value: option.value,
+                },
                 'Skipping lightScene entry with unsupported value shape'
               );
               continue;
@@ -563,14 +569,21 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       const scenes: DiyScene[] = [];
       for (const capability of apiResponse.payload.capabilities) {
         if (
-          (capability.type.includes('dynamic_scene') || capability.type.includes('diy_color_setting')) &&
+          (capability.type.includes('dynamic_scene') ||
+            capability.type.includes('diy_color_setting')) &&
           capability.instance === 'diyScene'
         ) {
           for (const option of capability.parameters.options) {
             const parsedValue = this.parseStructuredDynamicSceneValue(option.value);
             if (!parsedValue) {
               this.logger?.debug(
-                { deviceId, sku, instance: capability.instance, optionName: option.name, value: option.value },
+                {
+                  deviceId,
+                  sku,
+                  instance: capability.instance,
+                  optionName: option.name,
+                  value: option.value,
+                },
                 'Skipping diyScene entry with unsupported value shape'
               );
               continue;
@@ -726,9 +739,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
   }
 
-  private parseStructuredDynamicSceneValue(
-    value: unknown
-  ): { id: number; paramId: number } | null {
+  private parseStructuredDynamicSceneValue(value: unknown): { id: number; paramId: number } | null {
     if (
       typeof value === 'object' &&
       value !== null &&
@@ -948,4 +959,3 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     return result;
   }
 }
-
