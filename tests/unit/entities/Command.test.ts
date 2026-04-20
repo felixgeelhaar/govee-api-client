@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  PowerOnCommand, 
-  PowerOffCommand, 
-  BrightnessCommand, 
-  ColorCommand, 
+import {
+  PowerOnCommand,
+  PowerOffCommand,
+  BrightnessCommand,
+  ColorCommand,
   ColorTemperatureCommand,
-  CommandFactory 
+  SnapshotCommand,
+  CommandFactory,
 } from '../../../src/domain/entities/Command';
 import { ColorRgb, ColorTemperature, Brightness } from '../../../src/domain/value-objects';
+import { Snapshot } from '../../../src/domain/value-objects/Snapshot';
 
 describe('Command classes', () => {
   describe('PowerOnCommand', () => {
@@ -284,6 +286,51 @@ describe('CommandFactory', () => {
     it('should throw error for invalid presetScene command value', () => {
       expect(() => CommandFactory.fromObject({ name: 'presetScene', value: { invalid: true } }))
         .toThrow('Invalid mode command value: [object Object]');
+    });
+  });
+
+  describe('SnapshotCommand', () => {
+    // Regression coverage for plugin issue #198: Govee's API returns 200 OK
+    // when a snapshot control command is sent with an object-shaped value
+    // like { id, paramId }, but does not actually apply the snapshot. The
+    // dedicated DIY scene fix (PR #25) already switched DIY commands to a
+    // bare numeric ID. Snapshot control matches that pattern.
+
+    it('serializes value as the numeric snapshot id, not an object', () => {
+      const command = new SnapshotCommand(new Snapshot(12345, 67890, 'Reading'));
+      expect(command.value).toBe(12345);
+      expect(command.value).not.toEqual({ id: 12345, paramId: 67890 });
+    });
+
+    it('toObject returns the numeric value', () => {
+      const command = new SnapshotCommand(new Snapshot(42, 99, 'Movie night'));
+      expect(command.toObject()).toEqual({ name: 'snapshot', value: 42 });
+    });
+
+    it('CommandFactory.fromObject accepts numeric value (current API)', () => {
+      const command = CommandFactory.fromObject({ name: 'snapshot', value: 7777 });
+      expect(command.name).toBe('snapshot');
+      expect(command.value).toBe(7777);
+    });
+
+    it('CommandFactory.fromObject still accepts { id, paramId } (backwards compat)', () => {
+      // Settings persisted by older releases must still deserialize so
+      // users don't lose their configured snapshot steps / buttons.
+      const command = CommandFactory.fromObject({
+        name: 'snapshot',
+        value: { id: 1001, paramId: 2001 },
+      });
+      expect(command.name).toBe('snapshot');
+      // After round-trip the value normalizes to the numeric id used on
+      // the wire; paramId is preserved on the domain object but not
+      // serialized back out.
+      expect(command.value).toBe(1001);
+    });
+
+    it('CommandFactory.fromObject throws on null/invalid snapshot value', () => {
+      expect(() => CommandFactory.fromObject({ name: 'snapshot', value: null })).toThrow(
+        'Invalid snapshot command value: null'
+      );
     });
   });
 });

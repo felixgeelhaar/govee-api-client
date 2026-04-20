@@ -2,8 +2,9 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { GoveeDeviceRepository } from '../../src/infrastructure/GoveeDeviceRepository';
-import { CommandFactory } from '../../src/domain/entities/Command';
+import { CommandFactory, SnapshotCommand } from '../../src/domain/entities/Command';
 import { ColorRgb, ColorTemperature, Brightness } from '../../src/domain/value-objects';
+import { Snapshot } from '../../src/domain/value-objects/Snapshot';
 import { GoveeApiError, InvalidApiKeyError, RateLimitError, NetworkError } from '../../src/errors';
 
 const BASE_URL = 'https://openapi.api.govee.com';
@@ -1362,6 +1363,30 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       await expect(repository.sendCommand('device123', 'H6159', command)).rejects.toThrow(
         GoveeApiError
       );
+    });
+
+    it('sends snapshot control as a bare numeric id, not an object', async () => {
+      // Regression guard for plugin issue #198: Govee's /device/control
+      // returns 200 OK when the snapshot value is { id, paramId } but
+      // silently does not apply the snapshot. The DIY scene fix (PR #25)
+      // already moved DIY to numeric; snapshot follows the same shape.
+      let observedValue: unknown;
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = (await request.json()) as any;
+          expect(body.payload.capability.type).toBe('devices.capabilities.dynamic_scene');
+          expect(body.payload.capability.instance).toBe('snapshot');
+          observedValue = body.payload.capability.value;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const command = new SnapshotCommand(new Snapshot(54321, 99999, 'Reading'));
+      await expect(
+        repository.sendCommand('device123', 'H6159', command)
+      ).resolves.not.toThrow();
+      expect(observedValue).toBe(54321);
+      expect(typeof observedValue).toBe('number');
     });
   });
 

@@ -123,9 +123,12 @@ export class LightSceneCommand extends Command {
 }
 
 /**
- * Activates a user-saved snapshot. Shares the API payload shape with
- * {@link LightSceneCommand} (both live under `dynamic_scene`) but uses
- * `instance: "snapshot"` instead of `"lightScene"`.
+ * Activates a user-saved snapshot. Lives under `devices.capabilities.dynamic_scene`
+ * with `instance: "snapshot"`. The control payload is the numeric snapshot ID —
+ * Govee's API silently accepts `{ id, paramId }` object payloads with a 200 OK
+ * but does not actually apply the snapshot when the value is shaped that way.
+ * This mirrors the DIY scene fix and resolves issue #198 (snapshot button shows
+ * green confirmation but light state never changes).
  */
 export class SnapshotCommand extends Command {
   readonly name = 'snapshot';
@@ -136,15 +139,15 @@ export class SnapshotCommand extends Command {
     this._snapshot = snapshot;
   }
 
-  get value(): { paramId: number; id: number } {
-    return this._snapshot.toApiValue();
+  get value(): number {
+    return this._snapshot.id;
   }
 
   get snapshot(): Snapshot {
     return this._snapshot;
   }
 
-  toObject(): { name: string; value: { paramId: number; id: number } } {
+  toObject(): { name: string; value: number } {
     return { name: this.name, value: this.value };
   }
 }
@@ -416,6 +419,12 @@ export class CommandFactory {
         throw new Error(`Invalid light scene command value: ${obj.value}`);
 
       case 'snapshot':
+        // Accept both shapes when deserializing: numeric ID (current API)
+        // and the historical { id, paramId } object so persisted settings
+        // from older releases continue to load.
+        if (typeof obj.value === 'number') {
+          return new SnapshotCommand(new Snapshot(obj.value, obj.value, 'Snapshot'));
+        }
         if (typeof obj.value === 'object' && obj.value !== null) {
           const snapshotValue = obj.value as { id: number; paramId: number };
           return new SnapshotCommand(
