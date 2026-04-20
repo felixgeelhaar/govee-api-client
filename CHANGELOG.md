@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.2] - 2026-04-20
+
+### Fixed
+
+- **Snapshot control payload shape**: `SnapshotCommand.value` is now a bare numeric ID matching the DIY scene fix from 3.3.0. Govee's cloud API silently accepts the historical `{ id, paramId }` object payload with a 200 OK response but does not actually apply the snapshot — the dedicated Govee mobile app sends the numeric ID, and so must this client. Reported in plugin issue [#198](https://github.com/felixgeelhaar/govee-light-management/issues/198) where users saw the green confirmation mark but the light never changed state.
+- **Backwards-compatible deserialization**: `CommandFactory.fromObject` still accepts the legacy `{ id, paramId }` object shape when loading persisted snapshot commands from older settings, so existing Stream Deck buttons continue to work after the upgrade.
+
+### Tests
+
+- 6 new tests covering numeric serialization, legacy object deserialization, and an integration-level regression guard that the outgoing `/device/control` payload is a number (not an object).
+
 ## [3.3.1] - 2026-04-18
 
 ### Fixed
