@@ -772,7 +772,10 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
   } {
     const cmdObj = command.toObject();
 
-    // Map command names to capability types
+    // Map command names to capability types. The explicit entries cover
+    // all known Govee-defined instances; the suffix fallback below
+    // catches future additions so a new toggle / mode instance doesn't
+    // require a client patch before it can be sent.
     const capabilityTypeMap: Record<string, string> = {
       turn: 'devices.capabilities.on_off',
       brightness: 'devices.capabilities.range',
@@ -786,6 +789,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       musicMode: 'devices.capabilities.music_setting',
       nightlightToggle: 'devices.capabilities.toggle',
       gradientToggle: 'devices.capabilities.toggle',
+      dreamViewToggle: 'devices.capabilities.toggle',
       sceneStageToggle: 'devices.capabilities.toggle',
       nightlightScene: 'devices.capabilities.mode',
       presetScene: 'devices.capabilities.mode',
@@ -838,10 +842,24 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
 
     return {
-      type: capabilityTypeMap[cmdObj.name] || `devices.capabilities.${cmdObj.name}`,
+      type: capabilityTypeMap[cmdObj.name] ?? this.inferCapabilityType(cmdObj.name),
       instance,
       value,
     };
+  }
+
+  /**
+   * Best-effort capability-type inference when the command name is not
+   * in the explicit map. Catches future Govee toggle / mode instances
+   * so a new instance name (e.g. `musicSyncToggle`) doesn't require a
+   * client patch to route correctly. Falls back to the legacy
+   * `devices.capabilities.${name}` pattern for truly unknown commands;
+   * the server will reject those with a clear error message.
+   */
+  private inferCapabilityType(commandName: string): string {
+    if (commandName.endsWith('Toggle')) return 'devices.capabilities.toggle';
+    if (commandName.endsWith('Scene')) return 'devices.capabilities.mode';
+    return `devices.capabilities.${commandName}`;
   }
 
   private packColorRgbValue(value: unknown): unknown {

@@ -1388,6 +1388,69 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(observedValue).toBe(54321);
       expect(typeof observedValue).toBe('number');
     });
+
+    it('routes dreamViewToggle to devices.capabilities.toggle (not devices.capabilities.dreamViewToggle)', async () => {
+      // Pre-fix the convertCommandToCapability fallback produced
+      // `devices.capabilities.dreamViewToggle`, which Govee either
+      // rejected or silently ignored. dreamViewToggle lives under the
+      // generic toggle capability with the instance name as the
+      // discriminator.
+      let observedType: unknown;
+      let observedInstance: unknown;
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = (await request.json()) as any;
+          observedType = body.payload.capability.type;
+          observedInstance = body.payload.capability.instance;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const command = CommandFactory.toggle('dreamViewToggle', true);
+      await expect(
+        repository.sendCommand('device123', 'H6159', command)
+      ).resolves.not.toThrow();
+      expect(observedType).toBe('devices.capabilities.toggle');
+      expect(observedInstance).toBe('dreamViewToggle');
+    });
+
+    it('routes a future unknown *Toggle instance to devices.capabilities.toggle (suffix fallback)', async () => {
+      // Govee adds new toggle instances over time (nightlight, gradient,
+      // dreamView, sceneStage have all appeared in different firmware
+      // cycles). A new instance like `musicSyncToggle` should route
+      // correctly without a client patch.
+      let observedType: unknown;
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = (await request.json()) as any;
+          observedType = body.payload.capability.type;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const command = CommandFactory.toggle('musicSyncToggle', false);
+      await expect(
+        repository.sendCommand('device123', 'H6159', command)
+      ).resolves.not.toThrow();
+      expect(observedType).toBe('devices.capabilities.toggle');
+    });
+
+    it('routes a future unknown *Scene mode instance to devices.capabilities.mode', async () => {
+      let observedType: unknown;
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = (await request.json()) as any;
+          observedType = body.payload.capability.type;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const command = CommandFactory.mode('futureScene', 42);
+      await expect(
+        repository.sendCommand('device123', 'H6159', command)
+      ).resolves.not.toThrow();
+      expect(observedType).toBe('devices.capabilities.mode');
+    });
   });
 
   describe('request headers and authentication', () => {
