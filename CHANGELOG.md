@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.3] - 2026-04-20
+
+### Fixed
+
+- **`dreamViewToggle` and future toggle/mode instances now route to the correct capability type.** `convertCommandToCapability` previously fell back to `devices.capabilities.${commandName}` for any command name not in its explicit map, producing nonsense types like `devices.capabilities.dreamViewToggle`. Govee either rejected or silently accepted these requests — the DreamView toggle command was being sent but never applied. Fixed both defensively (added `dreamViewToggle` to the explicit map) and future-proof (suffix-based fallback: any `*Toggle` maps to `devices.capabilities.toggle`, any `*Scene` to `devices.capabilities.mode`). New toggle / mode instances Govee introduces will now route correctly without a client patch.
+
+### Tests
+
+- 3 new integration tests covering the dreamViewToggle route, a hypothetical future `*Toggle` instance via the suffix fallback, and a hypothetical future `*Scene` mode instance.
+
 ## [3.3.2] - 2026-04-20
 
 ### Fixed
