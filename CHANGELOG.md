@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.4] - 2026-04-25
+
+### Fixed
+
+- **Segmented capability state was silently dropped for every device.** `mapCapabilitiesToStateProperties` walks an `else if` chain on `capability.type.includes(...)`. The `color_setting` branch came before `segment_color_setting`, and `'segment_color_setting'.includes('color_setting')` is true — so segmented capabilities matched the wrong branch, fell through its `colorRgb` / `colorTemperatureK` instance check, and were dropped without warning. `DeviceState.getSegmentColors()` and `getSegmentBrightness()` returned `undefined` for every device that reported segmented state. Fixed by reordering the chain so `segment_color_setting` is checked first; an inline comment now flags the substring-match hazard.
+- **Defensive parsing for malformed capability payloads** ([#27](https://github.com/felixgeelhaar/govee-api-client/pull/27), thanks @JoArchie). Govee occasionally returns valid `powerSwitch` / `brightness` alongside fields like `colorTemperatureK: 0`, `lightScene: {}`, or empty `musicMode`. The pre-3.3.4 path threw on these, rejecting the entire state response and leaving consumers without even the valid fields they could have used. Each per-field parser now returns `undefined` for unrecognized values so the rest of the state still surfaces. `powerSwitch` also accepts `true` / `1` / `"on"` (and the inverse) interchangeably.
+
+### Tests
+
+- 7 new integration tests covering the boundary cases from #27: `colorTemperatureK: 0` skipped while powerSwitch + brightness still parse; `powerSwitch` accepts `true` / `1` / `"on"`; `null` powerSwitch dropped (not coerced); out-of-range / non-numeric brightness rejected; empty `lightScene` / `musicMode` skipped; bare-integer `musicMode` legacy shape parsed.
+- Un-skipped `should handle state with segmented color capability` and `should handle state with segmented brightness capability` — both had been parked behind `it.skip` since October 2025 (a0afd39) because the routing bug above prevented them from passing. Now lock in the fix.
+- Suite is 709/709 passing with **zero skipped tests** (was 695 + 2 skipped).
+
 ## [3.3.3] - 2026-04-20
 
 ### Fixed
