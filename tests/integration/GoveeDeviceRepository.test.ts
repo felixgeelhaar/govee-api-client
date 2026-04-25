@@ -716,6 +716,239 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
       expect(presetScene).toBe('Romantic');
     });
+
+    /**
+     * #27: defensive parsing for malformed capability payloads.
+     *
+     * Govee occasionally returns valid powerSwitch/brightness alongside
+     * fields like `colorTemperatureK: 0`, `lightScene: {}` or empty
+     * `musicMode`. The pre-#27 behaviour cast these straight into
+     * value-objects, blowing up the entire state response and leaving the
+     * plugin without even the *valid* power/brightness values it could have
+     * shown the user. These tests pin down the new behaviour: skip the
+     * single bad field, keep everything else.
+     */
+    describe('defensive parsing for malformed capability payloads (#27)', () => {
+      it('skips colorTemperatureK: 0 but still parses powerSwitch and brightness', async () => {
+        const mixedPayload = {
+          code: 200,
+          message: 'Success',
+          data: {
+            device: 'device123',
+            sku: 'H6159',
+            capabilities: [
+              {
+                type: 'devices.capabilities.on_off',
+                instance: 'powerSwitch',
+                state: { value: 1 },
+              },
+              {
+                type: 'devices.capabilities.range',
+                instance: 'brightness',
+                state: { value: 60 },
+              },
+              {
+                type: 'devices.capabilities.color_setting',
+                instance: 'colorTemperatureK',
+                state: { value: 0 },
+              },
+            ],
+          },
+        };
+
+        server.use(
+          http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+            return HttpResponse.json(mixedPayload);
+          })
+        );
+
+        const state = await repository.findState('device123', 'H6159');
+
+        expect(state.getPowerState()).toBe('on');
+        expect(state.getBrightness()?.level).toBe(60);
+        expect(state.getColorTemperature()).toBeUndefined();
+      });
+
+      it('accepts powerSwitch encoded as boolean true / numeric 1 / string "on"', async () => {
+        for (const raw of [true, 1, 'on'] as const) {
+          server.resetHandlers();
+          server.use(
+            http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+              return HttpResponse.json({
+                code: 200,
+                message: 'Success',
+                data: {
+                  device: 'device123',
+                  sku: 'H6159',
+                  capabilities: [
+                    {
+                      type: 'devices.capabilities.on_off',
+                      instance: 'powerSwitch',
+                      state: { value: raw },
+                    },
+                  ],
+                },
+              });
+            })
+          );
+
+          const state = await repository.findState('device123', 'H6159');
+          expect(state.getPowerState()).toBe('on');
+        }
+      });
+
+      it('drops powerSwitch when the value is unrecognized (e.g. null)', async () => {
+        server.use(
+          http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+            return HttpResponse.json({
+              code: 200,
+              message: 'Success',
+              data: {
+                device: 'device123',
+                sku: 'H6159',
+                capabilities: [
+                  {
+                    type: 'devices.capabilities.on_off',
+                    instance: 'powerSwitch',
+                    state: { value: null },
+                  },
+                  {
+                    type: 'devices.capabilities.range',
+                    instance: 'brightness',
+                    state: { value: 50 },
+                  },
+                ],
+              },
+            });
+          })
+        );
+
+        const state = await repository.findState('device123', 'H6159');
+        expect(state.getPowerState()).toBeUndefined();
+        expect(state.getBrightness()?.level).toBe(50);
+      });
+
+      it('drops out-of-range / non-numeric brightness values', async () => {
+        for (const raw of [-5, 150, NaN, 'lots' as unknown] as const) {
+          server.resetHandlers();
+          server.use(
+            http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+              return HttpResponse.json({
+                code: 200,
+                message: 'Success',
+                data: {
+                  device: 'device123',
+                  sku: 'H6159',
+                  capabilities: [
+                    {
+                      type: 'devices.capabilities.on_off',
+                      instance: 'powerSwitch',
+                      state: { value: 1 },
+                    },
+                    {
+                      type: 'devices.capabilities.range',
+                      instance: 'brightness',
+                      state: { value: raw },
+                    },
+                  ],
+                },
+              });
+            })
+          );
+
+          const state = await repository.findState('device123', 'H6159');
+          expect(state.getPowerState()).toBe('on');
+          expect(state.getBrightness()).toBeUndefined();
+        }
+      });
+
+      it('skips empty / malformed lightScene value rather than throwing', async () => {
+        server.use(
+          http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+            return HttpResponse.json({
+              code: 200,
+              message: 'Success',
+              data: {
+                device: 'device123',
+                sku: 'H6159',
+                capabilities: [
+                  {
+                    type: 'devices.capabilities.on_off',
+                    instance: 'powerSwitch',
+                    state: { value: 1 },
+                  },
+                  {
+                    type: 'devices.capabilities.dynamic_scene',
+                    instance: 'lightScene',
+                    state: { value: {} },
+                  },
+                ],
+              },
+            });
+          })
+        );
+
+        const state = await repository.findState('device123', 'H6159');
+        expect(state.getPowerState()).toBe('on');
+        expect(state.getLightScene()).toBeUndefined();
+      });
+
+      it('skips empty musicMode value (no modeId) rather than throwing', async () => {
+        server.use(
+          http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+            return HttpResponse.json({
+              code: 200,
+              message: 'Success',
+              data: {
+                device: 'device123',
+                sku: 'H6159',
+                capabilities: [
+                  {
+                    type: 'devices.capabilities.on_off',
+                    instance: 'powerSwitch',
+                    state: { value: 1 },
+                  },
+                  {
+                    type: 'devices.capabilities.music_setting',
+                    instance: 'musicMode',
+                    state: { value: {} },
+                  },
+                ],
+              },
+            });
+          })
+        );
+
+        const state = await repository.findState('device123', 'H6159');
+        expect(state.getPowerState()).toBe('on');
+        expect(state.getMusicMode()).toBeUndefined();
+      });
+
+      it('accepts musicMode encoded as a bare positive integer', async () => {
+        server.use(
+          http.post(`${BASE_URL}/router/api/v1/device/state`, () => {
+            return HttpResponse.json({
+              code: 200,
+              message: 'Success',
+              data: {
+                device: 'device123',
+                sku: 'H6159',
+                capabilities: [
+                  {
+                    type: 'devices.capabilities.music_setting',
+                    instance: 'musicMode',
+                    state: { value: 5 },
+                  },
+                ],
+              },
+            });
+          })
+        );
+
+        const state = await repository.findState('device123', 'H6159');
+        expect(state.getMusicMode()?.modeId).toBe(5);
+      });
+    });
   });
 
   describe('findDynamicScenes', () => {
