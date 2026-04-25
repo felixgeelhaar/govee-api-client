@@ -1004,26 +1004,13 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         if (brightness) {
           result.brightness = { value: brightness };
         }
-      } else if (capability.type.includes('color_setting')) {
-        if (capability.instance === 'colorRgb') {
-          result.color = {
-            value: ColorRgb.fromObject(this.unpackColorRgbValue(capability.state.value)),
-          };
-        } else if (capability.instance === 'colorTemperatureK') {
-          const colorTemperature = this.parseColorTemperature(capability.state.value);
-          if (colorTemperature) {
-            result.colorTem = { value: colorTemperature };
-          }
-        }
-      } else if (
-        capability.type.includes('dynamic_scene') &&
-        capability.instance === 'lightScene'
-      ) {
-        const lightScene = this.parseLightSceneValue(capability.state.value);
-        if (lightScene) {
-          result.lightScene = { value: lightScene };
-        }
       } else if (capability.type.includes('segment_color_setting')) {
+        // Must precede the `color_setting` branch below — the substring
+        // match `'segment_color_setting'.includes('color_setting')` is true,
+        // so when `color_setting` came first segmented capabilities were
+        // routed into the wrong branch and silently dropped, leaving
+        // DeviceState.getSegmentColors() / getSegmentBrightness()
+        // undefined for every device.
         if (capability.instance === 'segmentedColorRgb') {
           const groups = capability.state.value as Array<{
             segment: number | number[];
@@ -1051,6 +1038,25 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
               brightness: new Brightness(seg.brightness),
             })),
           };
+        }
+      } else if (capability.type.includes('color_setting')) {
+        if (capability.instance === 'colorRgb') {
+          result.color = {
+            value: ColorRgb.fromObject(this.unpackColorRgbValue(capability.state.value)),
+          };
+        } else if (capability.instance === 'colorTemperatureK') {
+          const colorTemperature = this.parseColorTemperature(capability.state.value);
+          if (colorTemperature) {
+            result.colorTem = { value: colorTemperature };
+          }
+        }
+      } else if (
+        capability.type.includes('dynamic_scene') &&
+        capability.instance === 'lightScene'
+      ) {
+        const lightScene = this.parseLightSceneValue(capability.state.value);
+        if (lightScene) {
+          result.lightScene = { value: lightScene };
         }
       } else if (capability.type.includes('music_setting') && capability.instance === 'musicMode') {
         const musicMode = this.parseMusicModeValue(capability.state.value);

@@ -408,7 +408,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(lightScene?.paramId).toBe(4280);
     });
 
-    it.skip('should handle state with segmented color capability', async () => {
+    it('should handle state with segmented color capability', async () => {
       const segmentedColorStateResponse = {
         code: 200,
         message: 'Success',
@@ -448,7 +448,7 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       }
     });
 
-    it.skip('should handle state with segmented brightness capability', async () => {
+    it('should handle state with segmented brightness capability', async () => {
       const segmentedBrightnessStateResponse = {
         code: 200,
         message: 'Success',
