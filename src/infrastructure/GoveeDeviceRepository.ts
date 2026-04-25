@@ -915,6 +915,79 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     return true;
   }
 
+  private parsePowerSwitch(value: unknown): 'on' | 'off' | undefined {
+    if (value === 1 || value === true || value === 'on') {
+      return 'on';
+    }
+
+    if (value === 0 || value === false || value === 'off') {
+      return 'off';
+    }
+
+    return undefined;
+  }
+
+  private parseBrightness(value: unknown): Brightness | undefined {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100) {
+      return undefined;
+    }
+
+    return new Brightness(Math.round(value));
+  }
+
+  private parseColorTemperature(value: unknown): ColorTemperature | undefined {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 1000 || value > 50000) {
+      return undefined;
+    }
+
+    return new ColorTemperature(Math.round(value));
+  }
+
+  private parseLightSceneValue(value: unknown): LightScene | undefined {
+    const parsedValue = this.parseStructuredDynamicSceneValue(value);
+    if (!parsedValue) {
+      return undefined;
+    }
+
+    return new LightScene(parsedValue.id, parsedValue.paramId, 'Current Scene');
+  }
+
+  private parseMusicModeValue(value: unknown): MusicMode | undefined {
+    if (typeof value === 'object' && value !== null) {
+      if (
+        'modeId' in value &&
+        typeof value.modeId === 'number' &&
+        Number.isInteger(value.modeId) &&
+        value.modeId > 0
+      ) {
+        const sensitivity =
+          'sensitivity' in value && typeof value.sensitivity === 'number'
+            ? value.sensitivity
+            : undefined;
+        return new MusicMode(value.modeId, sensitivity);
+      }
+
+      if (
+        'musicMode' in value &&
+        typeof value.musicMode === 'number' &&
+        Number.isInteger(value.musicMode) &&
+        value.musicMode > 0
+      ) {
+        const sensitivity =
+          'sensitivity' in value && typeof value.sensitivity === 'number'
+            ? value.sensitivity
+            : undefined;
+        return new MusicMode(value.musicMode, sensitivity);
+      }
+    }
+
+    if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+      return new MusicMode(value);
+    }
+
+    return undefined;
+  }
+
   private mapCapabilitiesToStateProperties(
     capabilities: Array<{ type: string; instance: string; state: { value: unknown } }>
   ): Record<string, StateProperty> {
@@ -922,25 +995,34 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
 
     for (const capability of capabilities) {
       if (capability.type.includes('on_off')) {
-        result.powerSwitch = { value: capability.state.value ? 'on' : 'off' };
+        const powerSwitch = this.parsePowerSwitch(capability.state.value);
+        if (powerSwitch) {
+          result.powerSwitch = { value: powerSwitch };
+        }
       } else if (capability.type.includes('range') && capability.instance === 'brightness') {
-        result.brightness = { value: new Brightness(capability.state.value as number) };
+        const brightness = this.parseBrightness(capability.state.value);
+        if (brightness) {
+          result.brightness = { value: brightness };
+        }
       } else if (capability.type.includes('color_setting')) {
         if (capability.instance === 'colorRgb') {
           result.color = {
             value: ColorRgb.fromObject(this.unpackColorRgbValue(capability.state.value)),
           };
         } else if (capability.instance === 'colorTemperatureK') {
-          result.colorTem = { value: new ColorTemperature(capability.state.value as number) };
+          const colorTemperature = this.parseColorTemperature(capability.state.value);
+          if (colorTemperature) {
+            result.colorTem = { value: colorTemperature };
+          }
         }
       } else if (
         capability.type.includes('dynamic_scene') &&
         capability.instance === 'lightScene'
       ) {
-        const sceneValue = capability.state.value as { id: number; paramId: number };
-        result.lightScene = {
-          value: new LightScene(sceneValue.id, sceneValue.paramId, 'Current Scene'),
-        };
+        const lightScene = this.parseLightSceneValue(capability.state.value);
+        if (lightScene) {
+          result.lightScene = { value: lightScene };
+        }
       } else if (capability.type.includes('segment_color_setting')) {
         if (capability.instance === 'segmentedColorRgb') {
           const groups = capability.state.value as Array<{
@@ -971,10 +1053,10 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
           };
         }
       } else if (capability.type.includes('music_setting') && capability.instance === 'musicMode') {
-        const modeValue = capability.state.value as { modeId: number; sensitivity?: number };
-        result.musicMode = {
-          value: new MusicMode(modeValue.modeId, modeValue.sensitivity),
-        };
+        const musicMode = this.parseMusicModeValue(capability.state.value);
+        if (musicMode) {
+          result.musicMode = { value: musicMode };
+        }
       } else if (capability.type.includes('toggle')) {
         // Store every toggle instance by its instance name so newer Govee
         // toggles (dreamViewToggle, future additions) are readable via
