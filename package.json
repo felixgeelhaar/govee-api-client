@@ -36,22 +36,22 @@
   "author": "Felix Geelhaar <felix@geelhaar.com>",
   "license": "MIT",
   "dependencies": {
-    "axios": "1.15.0",
-    "pino": "10.0.0",
-    "zod": "4.1.11"
+    "axios": "^1.16.0",
+    "pino": "^10.3.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/nock": "10.0.3",
-    "@types/node": "24.6.2",
-    "@vitest/coverage-v8": "4.0.16",
-    "@vitest/ui": "4.0.16",
+    "@types/node": "^25.6.2",
+    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/ui": "^4.1.5",
     "husky": "9.1.7",
-    "lint-staged": "16.2.3",
-    "msw": "2.12.7",
-    "nock": "14.0.10",
-    "prettier": "3.6.2",
-    "typescript": "5.9.3",
-    "vitest": "4.0.16"
+    "lint-staged": "^17.0.2",
+    "msw": "^2.14.5",
+    "nock": "^14.0.15",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   },
   "engines": {
     "node": ">=20.0.0"

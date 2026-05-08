@@ -4,15 +4,15 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  poolOptions: {
+    threads: {
+      singleThread: true,
+    },
+  },
   test: {
     globals: true,
     environment: 'node',
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
