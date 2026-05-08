@@ -3,13 +3,22 @@
   "spec_id": "govee-api-client",
   "tasks": [
     {
-      "id": "issue-19-investigate",
-      "title": "Inspect issue 19 command and schema paths",
-      "description": "Review the color command conversion and command response schema implementation tied to GitHub issue #19. Identify impacted files and confirm expected API v2 payload/response shapes.",
-      "priority": "high",
-      "estimate": "20m",
-      "depends_on": null,
-      "feature_id": ""
+      "id": "task-core-foundation",
+      "title": "Implement Core Foundation",
+      "description": "Implement the feature: Core Foundation. The essential building blocks of the project.",
+      "priority": "medium",
+      "estimate": "",
+      "depends_on": [],
+      "feature_id": "core-foundation"
+    },
+    {
+      "id": "task-update-dependencies-to-latest-versions",
+      "title": "Implement Update dependencies to latest versions",
+      "description": "Implement the feature: Update dependencies to latest versions. Audit all project dependencies and devDependencies, upgrade them to latest compatible versions, resolve any breaking changes, and verify the package builds and tests pass with updated lockfile.",
+      "priority": "medium",
+      "estimate": "",
+      "depends_on": [],
+      "feature_id": "update-dependencies-to-latest-versions"
     },
     {
       "id": "issue-19-fix",
@@ -65,9 +74,18 @@
         "release-version-sync"
       ],
       "feature_id": ""
+    },
+    {
+      "id": "issue-19-investigate",
+      "title": "Inspect issue 19 command and schema paths",
+      "description": "Review the color command conversion and command response schema implementation tied to GitHub issue #19. Identify impacted files and confirm expected API v2 payload/response shapes.",
+      "priority": "high",
+      "estimate": "20m",
+      "depends_on": null,
+      "feature_id": ""
     }
   ],
   "approval_status": "approved",
   "created_at": "2026-03-29T21:52:00.737782+02:00",
-  "updated_at": "2026-03-29T22:08:41.724277+02:00"
+  "updated_at": "2026-05-08T10:38:51.167843+02:00"
 }

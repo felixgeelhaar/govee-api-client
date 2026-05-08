@@ -1,6 +1,6 @@
 {
   "project_id": "govee-api-client",
-  "version": 17,
+  "version": 20,
   "task_states": {
     "issue-19-fix": {
       "status": "done",
@@ -67,7 +67,23 @@
       "started_at": "2026-03-29T22:05:11.756166+02:00",
       "completed_at": "2026-03-29T22:05:39.082848+02:00",
       "elapsed_minutes": 0
+    },
+    "task-core-foundation": {
+      "status": "pending",
+      "path": "",
+      "elapsed_minutes": 0
+    },
+    "task-update-dependencies-to-latest-versions": {
+      "status": "done",
+      "path": "",
+      "owner": "ai-agent",
+      "evidence": [
+        "Updated deps to latest; ran npm run lint \u0026\u0026 npm test -- --run \u0026\u0026 npm run build successfully"
+      ],
+      "started_at": "2026-05-08T10:39:06.75672+02:00",
+      "completed_at": "2026-05-08T10:41:43.308336+02:00",
+      "elapsed_minutes": 2
     }
   },
-  "updated_at": "2026-03-29T22:10:02.166285+02:00"
+  "updated_at": "2026-05-08T10:41:43.308337+02:00"
 }
