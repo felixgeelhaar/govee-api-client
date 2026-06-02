@@ -170,17 +170,25 @@ export const GoveeAnySceneOptionSchema = z.object({
   value: z.unknown(),
 });
 
+// DIY scene values come in several shapes across device models (bare
+// numeric ID, structured { id, paramId }, and occasional opaque handles).
+// Accept any value here and let parseStructuredDynamicSceneValue decide
+// per-option, so one unrecognized entry never invalidates the whole list.
 export const GoveeDiySceneOptionSchema = z.object({
   name: z.string(),
-  value: z.union([z.number(), GoveeStructuredSceneValueSchema]),
+  value: z.unknown(),
 });
 
-// Dynamic Scenes capability schema
+// Dynamic Scenes capability schema.
+//
+// dataType is optional: some models (e.g. Curtain Lights H70B6) omit it on
+// the scene capability. Requiring it would reject the entire response and
+// surface as an empty scene dropdown — see govee-light-management #250.
 export const GoveeDynamicSceneCapabilitySchema = z.object({
   type: z.string(),
   instance: z.string(),
   parameters: z.object({
-    dataType: z.string(),
+    dataType: z.string().optional(),
     options: z.array(GoveeAnySceneOptionSchema),
   }),
 });
@@ -189,7 +197,7 @@ export const GoveeDiySceneCapabilitySchema = z.object({
   type: z.string(),
   instance: z.string(),
   parameters: z.object({
-    dataType: z.string(),
+    dataType: z.string().optional(),
     options: z.array(GoveeDiySceneOptionSchema),
   }),
 });
