@@ -1265,6 +1265,39 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(scenes[1].id).toBe(9001);
       expect(scenes[1].paramId).toBe(9001);
     });
+
+    it('returns scenes even when parameters.dataType is absent', async () => {
+      // Some device models (e.g. Curtain Lights) omit the dataType field on
+      // the scene capability. A required-dataType schema would reject the
+      // whole response and the user would see an empty scene dropdown.
+      const mockResponse = {
+        code: 200,
+        msg: 'success',
+        payload: {
+          sku: 'H70B6',
+          device: 'device123',
+          capabilities: [
+            {
+              type: 'devices.capabilities.dynamic_scene',
+              instance: 'lightScene',
+              parameters: {
+                options: [
+                  { name: 'Floating Mist', value: { id: 5001, paramId: 6001 } },
+                  { name: 'Spectrum', value: { id: 5002, paramId: 6002 } },
+                ],
+              },
+            },
+          ],
+        },
+      };
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/scenes`, () =>
+          HttpResponse.json(mockResponse)
+        )
+      );
+      const scenes = await repository.findDynamicScenes('device123', 'H70B6');
+      expect(scenes.map(s => s.name)).toEqual(['Floating Mist', 'Spectrum']);
+    });
   });
 
   describe('findDiyScenes', () => {
@@ -1350,6 +1383,40 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(scenes[0].paramId).toBe(42);
       expect(scenes[1].id).toBe(100);
       expect(scenes[1].paramId).toBe(200);
+    });
+
+    it('skips DIY entries with an unexpected value shape instead of dropping all', async () => {
+      // A single option whose value is neither a number nor { id, paramId }
+      // (string, null, nested object) must not invalidate the entire DIY
+      // list — the valid scenes still need to reach the dropdown.
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/diy-scenes`, () =>
+          HttpResponse.json({
+            code: 200,
+            msg: 'success',
+            payload: {
+              sku: 'H6159',
+              device: 'device123',
+              capabilities: [
+                {
+                  type: 'devices.capabilities.dynamic_scene',
+                  instance: 'diyScene',
+                  parameters: {
+                    options: [
+                      { name: 'Good One', value: 12001 },
+                      { name: 'Weird Shape', value: 'scene://opaque-handle' },
+                      { name: 'Good Two', value: { id: 12003, paramId: 22003 } },
+                    ],
+                  },
+                },
+              ],
+            },
+          })
+        )
+      );
+
+      const scenes = await repository.findDiyScenes('device123', 'H6159');
+      expect(scenes.map(s => s.name)).toEqual(['Good One', 'Good Two']);
     });
 
     it('also recognizes diy_color_setting capability type', async () => {
