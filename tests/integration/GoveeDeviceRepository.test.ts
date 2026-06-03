@@ -1808,6 +1808,35 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(observedType).toBe('devices.capabilities.toggle');
     });
 
+    it('routes an indexed socketToggle instance to devices.capabilities.toggle', async () => {
+      // Multi-outlet devices (e.g. HS5089 Smart Outlet Extender) expose one
+      // toggle capability per socket, named `socketToggle1`, `socketToggle2`,
+      // etc. The trailing digit means the instance does NOT end with the
+      // literal `Toggle`, so the old `endsWith('Toggle')` suffix check missed
+      // it and the command was mis-routed to `devices.capabilities.socketToggle1`
+      // — which Govee rejected, so individual sockets could not be controlled.
+      let observedType: unknown;
+      let observedInstance: unknown;
+      let observedValue: unknown;
+      server.use(
+        http.post(`${BASE_URL}/router/api/v1/device/control`, async ({ request }) => {
+          const body = (await request.json()) as any;
+          observedType = body.payload.capability.type;
+          observedInstance = body.payload.capability.instance;
+          observedValue = body.payload.capability.value;
+          return HttpResponse.json(mockCommandResponse);
+        })
+      );
+
+      const command = CommandFactory.toggle('socketToggle1', false);
+      await expect(
+        repository.sendCommand('device123', 'HS5089', command)
+      ).resolves.not.toThrow();
+      expect(observedType).toBe('devices.capabilities.toggle');
+      expect(observedInstance).toBe('socketToggle1');
+      expect(observedValue).toBe(0);
+    });
+
     it('routes a future unknown *Scene mode instance to devices.capabilities.mode', async () => {
       let observedType: unknown;
       server.use(

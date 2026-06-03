@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.8] - 2026-06-03
+
+### Fixed
+
+- **Indexed toggle / mode instances were mis-routed to a non-existent capability type, so per-socket control on multi-outlet devices never worked.** `inferCapabilityType` matched the toggle/mode fallback with `commandName.endsWith('Toggle')` / `endsWith('Scene')`. Multi-outlet devices (e.g. the HS5089 Smart Outlet Extender) expose one toggle capability per socket — `socketToggle1`, `socketToggle2`, … — whose trailing digit means the name does **not** end with the literal `Toggle`. The check fell through to `devices.capabilities.socketToggle1`, an invalid capability type that Govee rejected, so individual sockets could not be turned on/off via the API even though the Govee app controls them fine. The two suffix checks are now anchored regexes (`/Toggle\d*$/`, `/Scene\d*$/`) that also match indexed instances; named (`nightlightToggle`) and future un-indexed (`musicSyncToggle`) instances are unchanged.
+
+### Tests
+
+- New integration test under `sendCommand`: a `socketToggle1` command routes to `devices.capabilities.toggle` with instance `socketToggle1` and value `0`, locking in the multi-outlet fix (regression guard alongside the existing `dreamViewToggle` / `musicSyncToggle` routing tests).
+
 ## [3.3.5] - 2026-05-01
 
 ### Fixed

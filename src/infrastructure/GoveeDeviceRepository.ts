@@ -852,13 +852,17 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
    * Best-effort capability-type inference when the command name is not
    * in the explicit map. Catches future Govee toggle / mode instances
    * so a new instance name (e.g. `musicSyncToggle`) doesn't require a
-   * client patch to route correctly. Falls back to the legacy
+   * client patch to route correctly. The optional trailing digits match
+   * indexed instances on multi-outlet / multi-zone devices, e.g.
+   * `socketToggle1` / `socketToggle2` on the HS5089 Smart Outlet Extender,
+   * which all live under the generic toggle capability with the instance
+   * name as the discriminator. Falls back to the legacy
    * `devices.capabilities.${name}` pattern for truly unknown commands;
    * the server will reject those with a clear error message.
    */
   private inferCapabilityType(commandName: string): string {
-    if (commandName.endsWith('Toggle')) return 'devices.capabilities.toggle';
-    if (commandName.endsWith('Scene')) return 'devices.capabilities.mode';
+    if (/Toggle\d*$/.test(commandName)) return 'devices.capabilities.toggle';
+    if (/Scene\d*$/.test(commandName)) return 'devices.capabilities.mode';
     return `devices.capabilities.${commandName}`;
   }
 
