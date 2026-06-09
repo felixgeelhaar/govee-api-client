@@ -2,6 +2,9 @@
  * MusicMode value object represents a music-reactive lighting mode
  * configuration for Govee devices that support music synchronization.
  *
+ * Mode ids are device-reported and may be zero-indexed: some devices (e.g.
+ * Curtain Lights Pro H70B6) expose mode id 0 (Floating Mist), so 0 is valid.
+ *
  * @example
  * const musicMode = new MusicMode(1, 50); // Mode 1 with 50% sensitivity
  * const modeOnly = new MusicMode(2); // Mode 2 with default sensitivity
@@ -23,8 +26,8 @@ export class MusicMode {
   }
 
   private validateModeId(modeId: number): void {
-    if (!Number.isInteger(modeId) || modeId <= 0) {
-      throw new Error('Mode ID must be a positive integer');
+    if (!Number.isInteger(modeId) || modeId < 0) {
+      throw new Error('Mode ID must be a non-negative integer');
     }
   }
 

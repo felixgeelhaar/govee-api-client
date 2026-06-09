@@ -17,11 +17,17 @@ describe('MusicMode', () => {
       expect(musicMode.sensitivity).toBeUndefined();
     });
 
-    it('should throw error when modeId is not a positive integer', () => {
-      expect(() => new MusicMode(-1)).toThrow('Mode ID must be a positive integer');
-      expect(() => new MusicMode(0)).toThrow('Mode ID must be a positive integer');
-      expect(() => new MusicMode(1.5)).toThrow('Mode ID must be a positive integer');
-      expect(() => new MusicMode(NaN)).toThrow('Mode ID must be a positive integer');
+    it('should accept zero as a valid mode id (zero-indexed devices)', () => {
+      const musicMode = new MusicMode(0, 50);
+
+      expect(musicMode.modeId).toBe(0);
+      expect(musicMode.toApiValue()).toEqual({ musicMode: 0, sensitivity: 50 });
+    });
+
+    it('should throw error when modeId is not a non-negative integer', () => {
+      expect(() => new MusicMode(-1)).toThrow('Mode ID must be a non-negative integer');
+      expect(() => new MusicMode(1.5)).toThrow('Mode ID must be a non-negative integer');
+      expect(() => new MusicMode(NaN)).toThrow('Mode ID must be a non-negative integer');
     });
 
     it('should throw error when sensitivity is out of range', () => {
@@ -130,11 +136,13 @@ describe('MusicMode', () => {
     });
 
     it('should validate object properties', () => {
-      expect(() => MusicMode.fromObject({ modeId: -1 }))
-        .toThrow('Mode ID must be a positive integer');
+      expect(() => MusicMode.fromObject({ modeId: -1 })).toThrow(
+        'Mode ID must be a non-negative integer'
+      );
 
-      expect(() => MusicMode.fromObject({ modeId: 1, sensitivity: 150 }))
-        .toThrow('Sensitivity must be between 0 and 100');
+      expect(() => MusicMode.fromObject({ modeId: 1, sensitivity: 150 })).toThrow(
+        'Sensitivity must be between 0 and 100'
+      );
     });
   });
 
