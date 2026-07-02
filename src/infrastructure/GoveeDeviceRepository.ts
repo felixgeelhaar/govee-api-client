@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { z } from 'zod';
 import { Logger } from 'pino';
 import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepository';
 import { GoveeDevice } from '../domain/entities/GoveeDevice';
@@ -29,7 +30,8 @@ import {
   ValidationError,
 } from '../errors';
 import {
-  GoveeDevicesResponseSchema,
+  GoveeDevicesEnvelopeSchema,
+  GoveeDeviceResponseSchema,
   GoveeStateResponseSchema,
   GoveeCommandResponseSchema,
   GoveeDynamicScenesResponseSchema,
@@ -240,8 +242,11 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     try {
       const response = await this.httpClient.get('/router/api/v1/user/devices');
 
-      // Validate response with Zod
-      const validationResult = GoveeDevicesResponseSchema.safeParse(response.data);
+      // Validate only the response envelope. Each device is validated on its
+      // own below, so a single entry whose nested capabilities fail strict
+      // parsing cannot reject the entire batch (which previously surfaced as
+      // "no devices found" even when most devices were valid).
+      const validationResult = GoveeDevicesEnvelopeSchema.safeParse(response.data);
 
       if (!validationResult.success) {
         this.logger?.error(
@@ -262,7 +267,27 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         );
       }
 
-      const devices = apiResponse.data
+      // Validate each device individually; skip (with a warning) any whose
+      // nested capabilities fail strict parsing instead of throwing for the
+      // whole response and hiding every other light.
+      const parsedDevices: z.infer<typeof GoveeDeviceResponseSchema>[] = [];
+      for (const raw of apiResponse.data) {
+        const parsed = GoveeDeviceResponseSchema.safeParse(raw);
+        if (!parsed.success) {
+          const id =
+            raw && typeof raw === 'object' && 'device' in raw
+              ? (raw as { device?: unknown }).device
+              : '[unknown]';
+          this.logger?.warn(
+            { device: id, zodError: parsed.error.issues },
+            'Skipping device that failed schema validation'
+          );
+          continue;
+        }
+        parsedDevices.push(parsed.data);
+      }
+
+      const devices = parsedDevices
         .filter(device => {
           if (
             !device.device ||

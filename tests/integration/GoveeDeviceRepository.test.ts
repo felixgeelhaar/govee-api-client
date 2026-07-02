@@ -186,6 +186,85 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
       await expect(repository.findAll()).rejects.toThrow(NetworkError);
     });
+
+    it('skips a device whose nested capabilities fail strict parsing and returns the rest', async () => {
+      // The first device advertises a range with a non-numeric `min`, which
+      // violates the strict capability schema. Previously this threw for the
+      // whole batch and hid every light; now only the bad device is dropped.
+      const responseWithOneBadDevice = {
+        code: 200,
+        message: 'Success',
+        data: [
+          {
+            device: 'bad-device',
+            sku: 'H6199',
+            deviceName: 'Malformed Light',
+            capabilities: [
+              {
+                type: 'devices.capabilities.range',
+                instance: 'brightness',
+                parameters: {
+                  dataType: 'INTEGER',
+                  range: { min: 'not-a-number', max: 100, precision: 1 },
+                },
+              },
+            ],
+          },
+          {
+            device: 'good-device',
+            sku: 'H6159',
+            deviceName: 'Working Light',
+            capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+              { type: 'devices.capabilities.range', instance: 'brightness' },
+            ],
+          },
+        ],
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
+          return HttpResponse.json(responseWithOneBadDevice);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      expect(devices).toHaveLength(1);
+      expect(devices[0].deviceId).toBe('good-device');
+    });
+
+    it('does not throw when every device is malformed — returns an empty list', async () => {
+      const allBad = {
+        code: 200,
+        message: 'Success',
+        data: [
+          {
+            device: 'bad-1',
+            sku: 'H6199',
+            deviceName: 'Bad One',
+            capabilities: [
+              {
+                type: 'devices.capabilities.range',
+                instance: 'brightness',
+                parameters: {
+                  dataType: 'INTEGER',
+                  range: { min: 'x', max: 'y', precision: 'z' },
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
+          return HttpResponse.json(allBad);
+        })
+      );
+
+      await expect(repository.findAll()).resolves.toEqual([]);
+    });
   });
 
   describe('findState', () => {

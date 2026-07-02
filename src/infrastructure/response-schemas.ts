@@ -69,6 +69,17 @@ export const GoveeDevicesResponseSchema = z.object({
   data: z.array(GoveeDeviceResponseSchema),
 });
 
+// Lenient envelope for the devices response. Validates only the wrapper
+// (code / message / an array of raw entries) so a single device whose nested
+// capabilities fail strict parsing cannot reject the entire batch. Each entry
+// is then validated individually against GoveeDeviceResponseSchema in
+// GoveeDeviceRepository.findAll, dropping only the malformed ones.
+export const GoveeDevicesEnvelopeSchema = z.object({
+  code: z.number(),
+  message: z.string(),
+  data: z.array(z.unknown()),
+});
+
 // Device state capability schema
 export const GoveeStateCapabilitySchema = z.object({
   type: z.string().min(1, 'State capability type must be a non-empty string'),
