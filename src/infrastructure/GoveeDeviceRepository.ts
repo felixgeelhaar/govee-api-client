@@ -139,6 +139,23 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     return crypto.randomUUID();
   }
 
+  /**
+   * Compact a Zod issue list into `{ path, code, message, received }` entries
+   * for logging. `path` is dot-joined and `received` (present on type
+   * mismatches) records what Govee actually sent, so recurring quirks can be
+   * spotted across devices without dumping full stack-shaped errors.
+   */
+  private summarizeZodIssues(
+    issues: z.ZodIssue[]
+  ): Array<{ path: string; code: string; message: string; received?: unknown }> {
+    return issues.map(issue => ({
+      path: issue.path.join('.'),
+      code: issue.code,
+      message: issue.message,
+      ...('received' in issue ? { received: (issue as { received?: unknown }).received } : {}),
+    }));
+  }
+
   constructor(config: GoveeApiConfig) {
     this.validateConfig(config);
     this.logger = config.logger;
@@ -275,7 +292,12 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
       // (e.g. an odd scene list) never hides an otherwise-controllable light.
       // Only a device with an unusable identity (bad device/sku/name, or
       // capabilities that isn't an array) is skipped entirely.
+      // Track what we drop so the shape of Govee's quirks can be learned from
+      // logs. Every drop/skip emits a stable `event` marker + the raw payload
+      // and the field path that failed, so occurrences can be aggregated
+      // across devices, SKUs, and users.
       const parsedDevices: z.infer<typeof GoveeDeviceResponseSchema>[] = [];
+      let droppedCapabilities = 0;
       for (const raw of apiResponse.data) {
         const shell = GoveeDeviceShellSchema.safeParse(raw);
         if (!shell.success) {
@@ -283,8 +305,19 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
             raw && typeof raw === 'object' && 'device' in raw
               ? (raw as { device?: unknown }).device
               : '[unknown]';
+          const sku =
+            raw && typeof raw === 'object' && 'sku' in raw
+              ? (raw as { sku?: unknown }).sku
+              : undefined;
           this.logger?.warn(
-            { device: id, zodError: shell.error.issues },
+            {
+              event: 'govee.device.skipped',
+              reason: 'device-identity-invalid',
+              device: id,
+              sku,
+              issues: this.summarizeZodIssues(shell.error.issues),
+              rawDevice: raw,
+            },
             'Skipping device that failed schema validation'
           );
           continue;
@@ -295,7 +328,13 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         // is kept; malformed individual capabilities are dropped below.
         if (!Array.isArray(shell.data.capabilities)) {
           this.logger?.warn(
-            { device: shell.data.device },
+            {
+              event: 'govee.device.skipped',
+              reason: 'capabilities-not-an-array',
+              device: shell.data.device,
+              sku: shell.data.sku,
+              rawCapabilities: shell.data.capabilities,
+            },
             'Filtering out device with invalid capabilities'
           );
           continue;
@@ -314,14 +353,35 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
           ) {
             validCapabilities.push(cap.data);
           } else {
+            droppedCapabilities++;
+            const meta =
+              rawCap && typeof rawCap === 'object'
+                ? (rawCap as { type?: unknown; instance?: unknown })
+                : {};
             this.logger?.warn(
-              { device: shell.data.device, zodError: cap.success ? undefined : cap.error.issues },
+              {
+                event: 'govee.capability.dropped',
+                reason: cap.success ? 'capability-type-empty' : 'capability-schema-invalid',
+                device: shell.data.device,
+                sku: shell.data.sku,
+                capabilityType: meta.type,
+                capabilityInstance: meta.instance,
+                issues: cap.success ? undefined : this.summarizeZodIssues(cap.error.issues),
+                rawCapability: rawCap,
+              },
               'Dropping capability that failed validation (device kept)'
             );
           }
         }
 
         parsedDevices.push({ ...shell.data, capabilities: validCapabilities });
+      }
+
+      if (droppedCapabilities > 0) {
+        this.logger?.info(
+          { event: 'govee.capabilities.dropped.summary', droppedCapabilities },
+          `Dropped ${droppedCapabilities} malformed capabilit${droppedCapabilities === 1 ? 'y' : 'ies'} across the response (devices kept)`
+        );
       }
 
       const devices = parsedDevices
