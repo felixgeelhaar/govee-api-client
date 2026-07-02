@@ -346,11 +346,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
           // A capability is usable only if it parses AND carries a non-empty
           // type — the type drives command derivation. Drop anything else,
           // keeping the device with its remaining valid capabilities.
-          if (
-            cap.success &&
-            typeof cap.data.type === 'string' &&
-            cap.data.type.trim().length > 0
-          ) {
+          if (cap.success && typeof cap.data.type === 'string' && cap.data.type.trim().length > 0) {
             validCapabilities.push(cap.data);
           } else {
             droppedCapabilities++;
