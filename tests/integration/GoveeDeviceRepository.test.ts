@@ -273,6 +273,65 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       expect(devices).toHaveLength(1);
       expect(devices[0].deviceId).toBe('good-device');
     });
+
+    it('emits a structured learning event (sku + capability + failing path) when a capability is dropped', async () => {
+      const warn = vi.fn();
+      const logger = {
+        info: vi.fn(),
+        warn,
+        error: vi.fn(),
+        debug: vi.fn(),
+        trace: vi.fn(),
+        fatal: vi.fn(),
+      };
+      const repoWithLogger = new GoveeDeviceRepository({
+        apiKey: 'test-api-key',
+        timeout: 5000,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        logger: logger as any,
+      });
+
+      server.use(
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
+          return HttpResponse.json({
+            code: 200,
+            message: 'Success',
+            data: [
+              {
+                device: 'device-with-bad-cap',
+                sku: 'H6199',
+                deviceName: 'Quirky Light',
+                capabilities: [
+                  { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
+                  {
+                    type: 'devices.capabilities.range',
+                    instance: 'brightness',
+                    parameters: {
+                      dataType: 'INTEGER',
+                      range: { min: 'nope', max: 100, precision: 1 },
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+        })
+      );
+
+      await repoWithLogger.findAll();
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'govee.capability.dropped',
+          sku: 'H6199',
+          capabilityInstance: 'brightness',
+          issues: expect.arrayContaining([
+            expect.objectContaining({ path: expect.stringContaining('range') }),
+          ]),
+        }),
+        expect.any(String)
+      );
+    });
   });
 
   describe('findState', () => {
