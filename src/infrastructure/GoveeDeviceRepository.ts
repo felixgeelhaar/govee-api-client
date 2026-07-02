@@ -31,6 +31,8 @@ import {
 } from '../errors';
 import {
   GoveeDevicesEnvelopeSchema,
+  GoveeDeviceShellSchema,
+  GoveeCapabilitySchema,
   GoveeDeviceResponseSchema,
   GoveeStateResponseSchema,
   GoveeCommandResponseSchema,
@@ -267,24 +269,59 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
         );
       }
 
-      // Validate each device individually; skip (with a warning) any whose
-      // nested capabilities fail strict parsing instead of throwing for the
-      // whole response and hiding every other light.
+      // Validate each device individually, and each capability within it
+      // individually. A malformed capability drops only that capability — the
+      // device is kept with its remaining valid ones, so a quirky feature
+      // (e.g. an odd scene list) never hides an otherwise-controllable light.
+      // Only a device with an unusable identity (bad device/sku/name, or
+      // capabilities that isn't an array) is skipped entirely.
       const parsedDevices: z.infer<typeof GoveeDeviceResponseSchema>[] = [];
       for (const raw of apiResponse.data) {
-        const parsed = GoveeDeviceResponseSchema.safeParse(raw);
-        if (!parsed.success) {
+        const shell = GoveeDeviceShellSchema.safeParse(raw);
+        if (!shell.success) {
           const id =
             raw && typeof raw === 'object' && 'device' in raw
               ? (raw as { device?: unknown }).device
               : '[unknown]';
           this.logger?.warn(
-            { device: id, zodError: parsed.error.issues },
+            { device: id, zodError: shell.error.issues },
             'Skipping device that failed schema validation'
           );
           continue;
         }
-        parsedDevices.push(parsed.data);
+
+        // A device whose `capabilities` is not an array (null / missing) is
+        // unusable — skip it, matching prior behavior. An array (even empty)
+        // is kept; malformed individual capabilities are dropped below.
+        if (!Array.isArray(shell.data.capabilities)) {
+          this.logger?.warn(
+            { device: shell.data.device },
+            'Filtering out device with invalid capabilities'
+          );
+          continue;
+        }
+
+        const validCapabilities: z.infer<typeof GoveeCapabilitySchema>[] = [];
+        for (const rawCap of shell.data.capabilities) {
+          const cap = GoveeCapabilitySchema.safeParse(rawCap);
+          // A capability is usable only if it parses AND carries a non-empty
+          // type — the type drives command derivation. Drop anything else,
+          // keeping the device with its remaining valid capabilities.
+          if (
+            cap.success &&
+            typeof cap.data.type === 'string' &&
+            cap.data.type.trim().length > 0
+          ) {
+            validCapabilities.push(cap.data);
+          } else {
+            this.logger?.warn(
+              { device: shell.data.device, zodError: cap.success ? undefined : cap.error.issues },
+              'Dropping capability that failed validation (device kept)'
+            );
+          }
+        }
+
+        parsedDevices.push({ ...shell.data, capabilities: validCapabilities });
       }
 
       const devices = parsedDevices
@@ -318,26 +355,9 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
             );
             return false;
           }
-          if (!Array.isArray(device.capabilities)) {
-            this.logger?.warn(
-              { device: { ...device, capabilities: '[INVALID]' } },
-              'Filtering out device with invalid capabilities'
-            );
-            return false;
-          }
-          for (const capability of device.capabilities) {
-            if (
-              !capability.type ||
-              typeof capability.type !== 'string' ||
-              capability.type.trim().length === 0
-            ) {
-              this.logger?.warn(
-                { device: { ...device, capabilities: '[INVALID]' } },
-                'Filtering out device with invalid capability type'
-              );
-              return false;
-            }
-          }
+          // Capabilities were already validated individually above (malformed
+          // ones dropped, zero-capability devices skipped), so no per-capability
+          // checks are needed here.
           return true;
         })
         .map(

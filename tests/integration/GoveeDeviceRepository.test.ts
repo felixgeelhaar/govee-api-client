@@ -187,19 +187,21 @@ describe('GoveeDeviceRepository Integration Tests', () => {
       await expect(repository.findAll()).rejects.toThrow(NetworkError);
     });
 
-    it('skips a device whose nested capabilities fail strict parsing and returns the rest', async () => {
-      // The first device advertises a range with a non-numeric `min`, which
-      // violates the strict capability schema. Previously this threw for the
-      // whole batch and hid every light; now only the bad device is dropped.
-      const responseWithOneBadDevice = {
+    it('keeps a device but drops only the capability that fails strict parsing', async () => {
+      // The device advertises a valid on/off capability plus a malformed range
+      // (non-numeric min). Previously the bad capability failed the whole batch
+      // and hid every light; now only that capability is dropped and the light
+      // stays controllable via its remaining valid capabilities.
+      const responseWithBadCapability = {
         code: 200,
         message: 'Success',
         data: [
           {
-            device: 'bad-device',
+            device: 'mixed-device',
             sku: 'H6199',
-            deviceName: 'Malformed Light',
+            deviceName: 'Partly Malformed Light',
             capabilities: [
+              { type: 'devices.capabilities.on_off', instance: 'powerSwitch' },
               {
                 type: 'devices.capabilities.range',
                 instance: 'brightness',
@@ -224,7 +226,45 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
       server.use(
         http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
-          return HttpResponse.json(responseWithOneBadDevice);
+          return HttpResponse.json(responseWithBadCapability);
+        })
+      );
+
+      const devices = await repository.findAll();
+
+      // Both devices survive — the malformed capability is dropped, not the light.
+      expect(devices).toHaveLength(2);
+      const mixed = devices.find(d => d.deviceId === 'mixed-device');
+      expect(mixed).toBeDefined();
+      // Kept the valid on/off capability; dropped the malformed range.
+      expect(mixed!.supportedCmds).toContain('turn');
+      expect(mixed!.supportedCmds).not.toContain('brightness');
+      expect(mixed!.controllable).toBe(true);
+    });
+
+    it('skips only a device whose identity is unusable (non-string device id)', async () => {
+      const response = {
+        code: 200,
+        message: 'Success',
+        data: [
+          {
+            device: 12345, // invalid: not a string → device unusable
+            sku: 'H6199',
+            deviceName: 'Bad Identity',
+            capabilities: [{ type: 'devices.capabilities.on_off', instance: 'powerSwitch' }],
+          },
+          {
+            device: 'good-device',
+            sku: 'H6159',
+            deviceName: 'Working Light',
+            capabilities: [{ type: 'devices.capabilities.on_off', instance: 'powerSwitch' }],
+          },
+        ],
+      };
+
+      server.use(
+        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
+          return HttpResponse.json(response);
         })
       );
 
@@ -232,38 +272,6 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
       expect(devices).toHaveLength(1);
       expect(devices[0].deviceId).toBe('good-device');
-    });
-
-    it('does not throw when every device is malformed — returns an empty list', async () => {
-      const allBad = {
-        code: 200,
-        message: 'Success',
-        data: [
-          {
-            device: 'bad-1',
-            sku: 'H6199',
-            deviceName: 'Bad One',
-            capabilities: [
-              {
-                type: 'devices.capabilities.range',
-                instance: 'brightness',
-                parameters: {
-                  dataType: 'INTEGER',
-                  range: { min: 'x', max: 'y', precision: 'z' },
-                },
-              },
-            ],
-          },
-        ],
-      };
-
-      server.use(
-        http.get(`${BASE_URL}/router/api/v1/user/devices`, () => {
-          return HttpResponse.json(allBad);
-        })
-      );
-
-      await expect(repository.findAll()).resolves.toEqual([]);
     });
   });
 
@@ -2266,8 +2274,13 @@ describe('GoveeDeviceRepository Integration Tests', () => {
 
       const devices = await repository.findAll();
 
-      expect(devices).toHaveLength(1);
-      expect(devices[0].deviceId).toBe('device123');
+      // device123: fully valid → kept.
+      // device456: capabilities null → no usable capabilities → skipped.
+      // device789: the empty-type capability is dropped, but on_off + range
+      //   remain, so the device is kept (per-capability resilience).
+      expect(devices.map(d => d.deviceId).sort()).toEqual(['device123', 'device789']);
+      const d789 = devices.find(d => d.deviceId === 'device789');
+      expect(d789!.supportedCmds).toEqual(['turn', 'brightness']);
     });
 
     it('should return empty array when all devices are invalid', async () => {
