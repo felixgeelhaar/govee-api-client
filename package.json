@@ -19,6 +19,7 @@
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
     "docs:validate": "echo 'Validating documentation files...' && test -f docs/LLM_API_REFERENCE.md && test -f docs/EXAMPLES.md && test -f docs/TYPE_DEFINITIONS.md && echo 'Documentation validation complete'",
+    "prepare": "husky",
     "prepublishOnly": "npm run build && npm run docs:validate"
   },
   "keywords": [
