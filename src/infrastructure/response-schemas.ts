@@ -72,13 +72,25 @@ export const GoveeDevicesResponseSchema = z.object({
 // Lenient envelope for the devices response. Validates only the wrapper
 // (code / message / an array of raw entries) so a single device whose nested
 // capabilities fail strict parsing cannot reject the entire batch. Each entry
-// is then validated individually against GoveeDeviceResponseSchema in
-// GoveeDeviceRepository.findAll, dropping only the malformed ones.
+// is then validated individually in GoveeDeviceRepository.findAll.
 export const GoveeDevicesEnvelopeSchema = z.object({
   code: z.number(),
   message: z.string(),
   data: z.array(z.unknown()),
 });
+
+// Device identity without its capabilities validated. findAll parses each
+// capability individually so a single malformed capability drops only that
+// capability, never the whole device — the light stays controllable via its
+// remaining (valid) capabilities. `capabilities` is left as raw unknowns here.
+export const GoveeDeviceShellSchema = z
+  .object({
+    device: z.string().optional().nullable(),
+    sku: z.string().optional().nullable(),
+    deviceName: z.string().optional().nullable(),
+    capabilities: z.array(z.unknown()).optional().nullable(),
+  })
+  .passthrough();
 
 // Device state capability schema
 export const GoveeStateCapabilitySchema = z.object({
