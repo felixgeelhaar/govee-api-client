@@ -1,0 +1,48 @@
+# warden — local CI gate for govee-api-client (sole hook manager; husky and
+# lint-staged were removed in the dependabot->nox migration). pre-commit stays
+# fast (type-check + format check); pre-push runs the FULL CI the GitHub
+# workflow runs, so nothing leaves the machine that CI would reject. warden's
+# native hooks live in .git/hooks and auto-fetch the binary if missing, so a
+# fresh clone is gated without any npm devDependency.
+extends: ''
+agent: auto
+hooks:
+  pre_commit: true
+  pre_push: true
+commands:
+  # This library's `lint` script is `tsc --noEmit` (type-check); there is no
+  # separate ESLint config. Named 'typecheck'/'formatcheck'/'testcov' (not
+  # warden's built-in 'lint'/'test') so warden runs THESE exact npm scripts —
+  # CI parity, incl. coverage.
+  typecheck: npm run lint
+  formatcheck: npm run format:check
+  testcov: npm run test:coverage -- --run
+  build: npm run build
+  audit: npm audit --audit-level=high
+steps:
+  # Fast gate on commit: types + formatting. Each step runs in an isolated
+  # worktree (verify-only — warden never mutates your tree), so formatting is
+  # CHECKED and blocked here, not auto-fixed. Run `npm run format` to fix.
+  pre_commit:
+    - typecheck
+    - formatcheck
+  pre_push:
+    - rebase
+    - typecheck
+    - formatcheck
+    - testcov
+    - build
+    - audit
+timeouts: {}
+cache: {}
+agent_commands: {}
+parallel: null
+notify: null
+risk:
+  diff_lines_high: 400
+  files_touched_high: 15
+pr:
+  enabled: false
+  base: ''
+  comment: null
+rules: []
