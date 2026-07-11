@@ -19,7 +19,6 @@
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
     "docs:validate": "echo 'Validating documentation files...' && test -f docs/LLM_API_REFERENCE.md && test -f docs/EXAMPLES.md && test -f docs/TYPE_DEFINITIONS.md && echo 'Documentation validation complete'",
-    "prepare": "husky",
     "prepublishOnly": "npm run build && npm run docs:validate"
   },
   "keywords": [
@@ -46,8 +45,6 @@
     "@types/node": "^25.6.2",
     "@vitest/coverage-v8": "^4.1.5",
     "@vitest/ui": "^4.1.5",
-    "husky": "9.1.7",
-    "lint-staged": "^17.0.2",
     "msw": "^2.14.5",
     "nock": "^14.0.15",
     "prettier": "^3.8.3",
@@ -67,15 +64,6 @@
   "homepage": "https://github.com/felixgeelhaar/govee-api-client#readme",
   "publishConfig": {
     "access": "public"
-  },
-  "lint-staged": {
-    "src/**/*.{ts,js}": [
-      "prettier --write",
-      "bash -c 'npm run lint'"
-    ],
-    "**/*.{json,md}": [
-      "prettier --write"
-    ]
   },
   "exports": {
     ".": {
