@@ -36,8 +36,10 @@
   "author": "Felix Geelhaar <felix@geelhaar.com>",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.16.0",
+    "axios": "^1.18.0",
+    "nanoid": "^3.3.17",
     "pino": "^10.3.1",
+    "postcss": "^8.5.18",
     "zod": "^4.4.3"
   },
   "devDependencies": {
