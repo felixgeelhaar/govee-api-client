@@ -1,3 +1,4 @@
+import type { CommandOptions } from '../domain/repositories/CommandOptions';
 import { Logger } from 'pino';
 import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepository';
 import { GoveeDevice } from '../domain/entities/GoveeDevice';
@@ -178,30 +179,38 @@ export class GoveeControlService {
   /**
    * Sends a command to control a specific device
    */
-  async sendCommand(deviceId: string, model: string, command: Command): Promise<void> {
+  async sendCommand(
+    deviceId: string,
+    model: string,
+    command: Command,
+    options?: CommandOptions
+  ): Promise<void> {
     this.validateDeviceParams(deviceId, model);
     this.logger?.info({ deviceId, model, command: command.toObject() }, 'Sending command');
 
     return this.rateLimiter.execute(async () => {
-      await this.repository.sendCommand(deviceId, model, command);
+      await (options
+        ? this.repository.sendCommand(deviceId, model, command, options)
+        : this.repository.sendCommand(deviceId, model, command));
+      options?.signal?.throwIfAborted();
       this.logger?.info({ deviceId, model }, 'Command sent successfully');
-    });
+    }, options?.signal);
   }
 
   /**
    * Turns a device on
    */
-  async turnOn(deviceId: string, model: string): Promise<void> {
+  async turnOn(deviceId: string, model: string, options?: CommandOptions): Promise<void> {
     this.logger?.info({ deviceId, model }, 'Turning device on');
-    await this.sendCommand(deviceId, model, CommandFactory.powerOn());
+    await this.sendCommand(deviceId, model, CommandFactory.powerOn(), options);
   }
 
   /**
    * Turns a device off
    */
-  async turnOff(deviceId: string, model: string): Promise<void> {
+  async turnOff(deviceId: string, model: string, options?: CommandOptions): Promise<void> {
     this.logger?.info({ deviceId, model }, 'Turning device off');
-    await this.sendCommand(deviceId, model, CommandFactory.powerOff());
+    await this.sendCommand(deviceId, model, CommandFactory.powerOff(), options);
   }
 
   /**

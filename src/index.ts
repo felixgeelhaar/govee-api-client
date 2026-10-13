@@ -1,3 +1,5 @@
+export type { CommandOptions } from './domain/repositories/CommandOptions';
+
 // Main client
 export { GoveeClient, type GoveeClientConfig } from './GoveeClient';
 

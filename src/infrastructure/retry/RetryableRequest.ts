@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { Logger } from 'pino';
 import { GoveeApiClientError, NetworkError } from '../../errors';
 import { RetryPolicy } from './RetryPolicy';
@@ -6,6 +7,8 @@ import { RetryPolicy } from './RetryPolicy';
  * Represents a request that can be retried
  */
 export interface RetryableRequest<T> {
+  /** Cancels attempts and backoff without treating cancellation as a failure. */
+  signal?: AbortSignal;
   /** Unique identifier for this request */
   id: string;
   /** Function that executes the actual request */
@@ -108,6 +111,7 @@ export class RetryExecutor {
     this.logRequestStart(request);
 
     while (true) {
+      request.signal?.throwIfAborted();
       attemptNumber++;
       const attemptStartTime = new Date();
       const delayMs =
@@ -119,10 +123,16 @@ export class RetryExecutor {
           { requestId: request.id, attemptNumber, delayMs },
           'Waiting before retry attempt'
         );
-        await this.sleep(delayMs);
+        try {
+          await delay(delayMs, undefined, { signal: request.signal });
+        } catch (error) {
+          request.signal?.throwIfAborted();
+          throw error;
+        }
       }
 
       const attemptResult = await this.executeAttempt(request, attemptNumber);
+      request.signal?.throwIfAborted();
 
       attempts.push({
         attemptNumber,
@@ -201,6 +211,7 @@ export class RetryExecutor {
         durationMs,
       };
     } catch (error) {
+      request.signal?.throwIfAborted();
       const durationMs = Date.now() - startTime;
       const goveeError = this.normalizeError(error);
 
@@ -227,13 +238,6 @@ export class RetryExecutor {
     }
 
     return new NetworkError('Unknown error occurred', 'unknown');
-  }
-
-  /**
-   * Utility function for sleeping
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
