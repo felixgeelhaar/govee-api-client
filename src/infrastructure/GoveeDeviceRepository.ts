@@ -1,3 +1,4 @@
+import type { CommandOptions } from '../domain/repositories/CommandOptions';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { z } from 'zod';
 import { Logger } from 'pino';
@@ -222,6 +223,9 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
   }
 
   private handleHttpError(error: AxiosError): never {
+    if (axios.isCancel(error)) {
+      throw new DOMException('Command cancelled', 'AbortError');
+    }
     this.logger?.error(error, 'HTTP request failed');
 
     if (
@@ -500,7 +504,13 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     }
   }
 
-  async sendCommand(deviceId: string, sku: string, command: Command): Promise<void> {
+  async sendCommand(
+    deviceId: string,
+    sku: string,
+    command: Command,
+    options?: CommandOptions
+  ): Promise<void> {
+    options?.signal?.throwIfAborted();
     this.validateDeviceParams(deviceId, sku);
     this.logger?.info({ deviceId, sku, command: command.toObject() }, 'Sending command to device');
 
@@ -514,8 +524,11 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
     };
 
     try {
-      const response = await this.httpClient.post('/router/api/v1/device/control', requestBody);
+      const response = await this.httpClient.post('/router/api/v1/device/control', requestBody, {
+        signal: options?.signal,
+      });
 
+      options?.signal?.throwIfAborted();
       // Validate response with Zod
       const validationResult = GoveeCommandResponseSchema.safeParse(response.data);
 
@@ -540,6 +553,7 @@ export class GoveeDeviceRepository implements IGoveeDeviceRepository {
 
       this.logger?.info({ deviceId, sku }, 'Successfully sent command to device');
     } catch (error) {
+      options?.signal?.throwIfAborted();
       this.logger?.error(error, 'Failed to send command to device');
       throw error;
     }

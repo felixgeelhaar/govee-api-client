@@ -22,6 +22,7 @@ interface QueuedRequest<T> {
   resolve: (value: T) => void;
   reject: (error: Error) => void;
   timestamp: number;
+  cleanup?: () => void;
 }
 
 /**
@@ -45,6 +46,7 @@ export class SlidingWindowRateLimiter {
 
   // Flag to prevent multiple queue processors
   private processingQueue = false;
+  private queueTimer?: ReturnType<typeof setTimeout>;
 
   constructor(config: SlidingWindowRateLimiterConfig) {
     this.validateConfig(config);
@@ -92,7 +94,8 @@ export class SlidingWindowRateLimiter {
    * @param fn - The async function to execute
    * @returns Promise that resolves with the function's result
    */
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
+  async execute<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    signal?.throwIfAborted();
     return new Promise<T>((resolve, reject) => {
       const request: QueuedRequest<T> = {
         fn,
@@ -111,6 +114,25 @@ export class SlidingWindowRateLimiter {
         return;
       }
 
+      if (signal) {
+        const onAbort = () => {
+          const index = this.requestQueue.indexOf(request);
+          if (index !== -1) this.requestQueue.splice(index, 1);
+          signal.removeEventListener('abort', onAbort);
+          if (this.requestQueue.length === 0 && this.queueTimer) {
+            clearTimeout(this.queueTimer);
+            this.queueTimer = undefined;
+          }
+          reject(signal.reason);
+        };
+        signal.addEventListener('abort', onAbort, { once: true });
+        request.cleanup = () => signal.removeEventListener('abort', onAbort);
+        const execute = request.fn;
+        request.fn = async () => {
+          signal.throwIfAborted();
+          return execute();
+        };
+      }
       this.requestQueue.push(request);
       this.processQueue();
     });
@@ -162,6 +184,7 @@ export class SlidingWindowRateLimiter {
     while (this.requestQueue.length > 0 && this.canExecuteNow(now)) {
       const request = this.requestQueue.shift();
       if (!request) break;
+      request.cleanup?.();
 
       // Check if request has expired (optional timeout)
       // Only timeout in production, not in tests
@@ -192,7 +215,7 @@ export class SlidingWindowRateLimiter {
     }
 
     // Schedule processing for queued requests if rate limit is reached
-    if (this.requestQueue.length > 0) {
+    if (this.requestQueue.length > 0 && !this.queueTimer) {
       const nextSlot = this.getNextAvailableTime(now);
       const delay = Math.max(0, nextSlot - now);
 
@@ -205,7 +228,8 @@ export class SlidingWindowRateLimiter {
         'Rate limit reached, scheduling next execution'
       );
 
-      setTimeout(() => {
+      this.queueTimer = setTimeout(() => {
+        this.queueTimer = undefined;
         this.processQueue();
       }, delay);
     }

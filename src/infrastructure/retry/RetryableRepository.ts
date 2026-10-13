@@ -1,3 +1,4 @@
+import type { CommandOptions } from '../../domain/repositories/CommandOptions';
 import { Logger } from 'pino';
 import { IGoveeDeviceRepository } from '../../domain/repositories/IGoveeDeviceRepository';
 import { GoveeDevice } from '../../domain/entities/GoveeDevice';
@@ -94,11 +95,20 @@ export class RetryableRepository implements IGoveeDeviceRepository {
   /**
    * Sends command with retry logic
    */
-  async sendCommand(deviceId: string, sku: string, command: Command): Promise<void> {
+  async sendCommand(
+    deviceId: string,
+    sku: string,
+    command: Command,
+    options?: CommandOptions
+  ): Promise<void> {
     const request: RetryableRequest<void> = {
       id: this.generateRequestId('sendCommand'),
       description: `Send ${command.toObject().name} command to device ${deviceId} (${sku})`,
-      execute: () => this.repository.sendCommand(deviceId, sku, command),
+      signal: options?.signal,
+      execute: () =>
+        options
+          ? this.repository.sendCommand(deviceId, sku, command, options)
+          : this.repository.sendCommand(deviceId, sku, command),
       context: {
         operation: 'sendCommand',
         deviceId,
@@ -204,12 +214,17 @@ export class RetryableRepository implements IGoveeDeviceRepository {
   async sendCommandWithRetryResult(
     deviceId: string,
     sku: string,
-    command: Command
+    command: Command,
+    options?: CommandOptions
   ): Promise<RetryResult<void>> {
     const request: RetryableRequest<void> = {
       id: this.generateRequestId('sendCommand'),
       description: `Send ${command.toObject().name} command to device ${deviceId} (${sku}) with retry details`,
-      execute: () => this.repository.sendCommand(deviceId, sku, command),
+      signal: options?.signal,
+      execute: () =>
+        options
+          ? this.repository.sendCommand(deviceId, sku, command, options)
+          : this.repository.sendCommand(deviceId, sku, command),
       context: {
         operation: 'sendCommand',
         deviceId,

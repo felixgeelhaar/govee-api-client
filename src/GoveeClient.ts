@@ -1,3 +1,4 @@
+import type { CommandOptions } from './domain/repositories/CommandOptions';
 import pino, { Logger } from 'pino';
 import { GoveeDeviceRepository } from './infrastructure/GoveeDeviceRepository';
 import { GoveeControlService } from './services/GoveeControlService';
@@ -133,16 +134,21 @@ export class GoveeClient {
   }
 
   // Device control methods
-  async sendCommand(deviceId: string, model: string, command: Command): Promise<void> {
-    return this.controlService.sendCommand(deviceId, model, command);
+  async sendCommand(
+    deviceId: string,
+    model: string,
+    command: Command,
+    options?: CommandOptions
+  ): Promise<void> {
+    return this.controlService.sendCommand(deviceId, model, command, options);
   }
 
-  async turnOn(deviceId: string, model: string): Promise<void> {
-    return this.controlService.turnOn(deviceId, model);
+  async turnOn(deviceId: string, model: string, options?: CommandOptions): Promise<void> {
+    return this.controlService.turnOn(deviceId, model, options);
   }
 
-  async turnOff(deviceId: string, model: string): Promise<void> {
-    return this.controlService.turnOff(deviceId, model);
+  async turnOff(deviceId: string, model: string, options?: CommandOptions): Promise<void> {
+    return this.controlService.turnOff(deviceId, model, options);
   }
 
   async setBrightness(deviceId: string, model: string, brightness: Brightness): Promise<void> {

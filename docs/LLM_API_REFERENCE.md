@@ -37,9 +37,9 @@ class GoveeClient {
   findDevicesByModel(model: string): Promise<GoveeDevice[]>;
 
   // Device Control
-  sendCommand(deviceId: string, model: string, command: Command): Promise<void>;
-  turnOn(deviceId: string, model: string): Promise<void>;
-  turnOff(deviceId: string, model: string): Promise<void>;
+  sendCommand(deviceId: string, model: string, command: Command, options?: CommandOptions): Promise<void>;
+  turnOn(deviceId: string, model: string, options?: CommandOptions): Promise<void>;
+  turnOff(deviceId: string, model: string, options?: CommandOptions): Promise<void>;
   setBrightness(deviceId: string, model: string, brightness: Brightness): Promise<void>;
   setColor(deviceId: string, model: string, color: ColorRgb): Promise<void>;
   setColorTemperature(
@@ -556,3 +556,16 @@ The library provides full TypeScript support with:
 - **Minimum version**: Node.js 18.0.0
 - **ESM/CommonJS**: Supports both module systems
 - **TypeScript**: 5.8.3+ recommended
+
+### Command cancellation options
+
+```typescript
+export interface CommandOptions {
+  signal?: AbortSignal;
+}
+```
+
+The optional final argument on `turnOn`, `turnOff`, and `sendCommand` cancels
+queue waits, HTTP transport, and retry backoff. Cancellation rejects with the
+signal reason and is not retried. Already accepted cloud commands cannot be undone.
+Custom repositories must honor the optional signal.

@@ -734,7 +734,7 @@ Interface for device repository implementations.
 interface IGoveeDeviceRepository {
   findAll(): Promise<GoveeDevice[]>;
   findState(deviceId: string, model: string): Promise<DeviceState>;
-  sendCommand(deviceId: string, model: string, command: Command): Promise<void>;
+  sendCommand(deviceId: string, model: string, command: Command, options?: CommandOptions): Promise<void>;
 }
 ```
 
@@ -1081,3 +1081,16 @@ type ValidatedDevice = z.infer<typeof GoveeDeviceSchema>;
 ```
 
 This comprehensive type reference provides LLMs with complete type information for generating accurate, type-safe code when working with the Govee API Client library.
+
+### Command cancellation options
+
+```typescript
+export interface CommandOptions {
+  signal?: AbortSignal;
+}
+```
+
+The optional final argument on `turnOn`, `turnOff`, and `sendCommand` cancels
+queue waits, HTTP transport, and retry backoff. Cancellation rejects with the
+signal reason and is not retried. Already accepted cloud commands cannot be undone.
+Custom repositories must honor the optional signal.

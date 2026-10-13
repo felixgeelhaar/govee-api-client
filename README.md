@@ -193,3 +193,20 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 ## License
 
 MIT
+
+### Cancelling control commands
+
+`turnOn`, `turnOff`, and `sendCommand` accept an optional final `CommandOptions`
+argument. Existing calls are unchanged.
+
+```typescript
+await client.turnOn('device-id', 'H619A', {
+  signal: AbortSignal.timeout(5000),
+});
+```
+
+Cancellation stops queued commands, active HTTP requests, and retry waits. It
+rejects with the signal's reason (normally `AbortError` or `TimeoutError`) and
+does not retry a cancelled command. An already accepted cloud command cannot be
+undone. Custom repositories must forward the optional signal to their transport.
+Other convenience commands and discovery currently retain their existing API.
