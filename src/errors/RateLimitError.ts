@@ -1,4 +1,4 @@
-import { GoveeApiClientError } from './GoveeApiClientError';
+import { GoveeApiClientError } from './GoveeApiClientError.js';
 
 export class RateLimitError extends GoveeApiClientError {
   readonly code = 'RATE_LIMIT_EXCEEDED';

@@ -27,7 +27,7 @@
  */
 
 // Core retry policy and execution
-export { RetryPolicy } from './RetryPolicy';
+export { RetryPolicy } from './RetryPolicy.js';
 export type {
   BackoffStrategy,
   JitterConfig,
@@ -35,20 +35,20 @@ export type {
   CircuitBreakerConfig,
   RetryPolicyConfig,
   RetryMetrics,
-} from './RetryPolicy';
+} from './RetryPolicy.js';
 
 // Retryable request execution
-export { RetryExecutor, RetryExecutorFactory } from './RetryableRequest';
+export { RetryExecutor, RetryExecutorFactory } from './RetryableRequest.js';
 export type {
   RetryableRequest,
   RetryResult,
   RetryAttempt,
   RetryExecutorConfig,
-} from './RetryableRequest';
+} from './RetryableRequest.js';
 
 // Repository integration
-export { RetryableRepository } from './RetryableRepository';
-export type { RetryableRepositoryConfig } from './RetryableRepository';
+export { RetryableRepository } from './RetryableRepository.js';
+export type { RetryableRepositoryConfig } from './RetryableRepository.js';
 
 // Configuration presets and builders
-export { RetryConfigPresets, RetryConfigBuilder } from './RetryConfigPresets';
+export { RetryConfigPresets, RetryConfigBuilder } from './RetryConfigPresets.js';

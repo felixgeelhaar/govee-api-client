@@ -5,7 +5,7 @@ import {
   LightScene,
   SegmentColor,
   MusicMode,
-} from '../value-objects';
+} from '../value-objects/index.js';
 
 export interface PowerState {
   value: 'on' | 'off';

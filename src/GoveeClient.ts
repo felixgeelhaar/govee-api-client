@@ -1,10 +1,10 @@
-import type { CommandOptions } from './domain/repositories/CommandOptions';
+import type { CommandOptions } from './domain/repositories/CommandOptions.js';
 import pino, { Logger } from 'pino';
-import { GoveeDeviceRepository } from './infrastructure/GoveeDeviceRepository';
-import { GoveeControlService } from './services/GoveeControlService';
-import { GoveeDevice } from './domain/entities/GoveeDevice';
-import { DeviceState } from './domain/entities/DeviceState';
-import { Command } from './domain/entities/Command';
+import { GoveeDeviceRepository } from './infrastructure/GoveeDeviceRepository.js';
+import { GoveeControlService } from './services/GoveeControlService.js';
+import { GoveeDevice } from './domain/entities/GoveeDevice.js';
+import { DeviceState } from './domain/entities/DeviceState.js';
+import { Command } from './domain/entities/Command.js';
 import {
   ColorRgb,
   ColorTemperature,
@@ -14,8 +14,8 @@ import {
   DiyScene,
   SegmentColor,
   MusicMode,
-} from './domain/value-objects';
-import { RetryPolicy } from './infrastructure/retry';
+} from './domain/value-objects/index.js';
+import { RetryPolicy } from './infrastructure/retry/index.js';
 
 export interface GoveeClientConfig {
   apiKey?: string;

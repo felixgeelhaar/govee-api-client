@@ -1,8 +1,8 @@
-export { ColorRgb } from './ColorRgb';
-export { ColorTemperature } from './ColorTemperature';
-export { Brightness } from './Brightness';
-export { LightScene } from './LightScene';
-export { Snapshot } from './Snapshot';
-export { DiyScene } from './DiyScene';
-export { SegmentColor } from './SegmentColor';
-export { MusicMode } from './MusicMode';
+export { ColorRgb } from './ColorRgb.js';
+export { ColorTemperature } from './ColorTemperature.js';
+export { Brightness } from './Brightness.js';
+export { LightScene } from './LightScene.js';
+export { Snapshot } from './Snapshot.js';
+export { DiyScene } from './DiyScene.js';
+export { SegmentColor } from './SegmentColor.js';
+export { MusicMode } from './MusicMode.js';

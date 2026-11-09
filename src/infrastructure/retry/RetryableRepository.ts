@@ -1,17 +1,15 @@
-import type { CommandOptions } from '../../domain/repositories/CommandOptions';
+import type { CommandOptions } from '../../domain/repositories/CommandOptions.js';
 import { Logger } from 'pino';
-import { IGoveeDeviceRepository } from '../../domain/repositories/IGoveeDeviceRepository';
-import { GoveeDevice } from '../../domain/entities/GoveeDevice';
-import { DeviceState } from '../../domain/entities/DeviceState';
-import { Command } from '../../domain/entities/Command';
-import { LightScene, Snapshot, DiyScene } from '../../domain/value-objects';
+import { IGoveeDeviceRepository } from '../../domain/repositories/index.js';
+import { GoveeDevice, DeviceState } from '../../domain/entities/index.js';
+import { Command } from '../../domain/entities/Command.js';
+import { LightScene, Snapshot, DiyScene } from '../../domain/value-objects/index.js';
 import {
   RetryExecutor,
   RetryableRequest,
   RetryExecutorFactory,
   RetryResult,
-} from './RetryableRequest';
-import { RetryPolicy } from './RetryPolicy';
+} from './RetryableRequest.js';
 
 /**
  * Configuration for RetryableRepository
@@ -262,4 +260,4 @@ export class RetryableRepository implements IGoveeDeviceRepository {
 /**
  * Import the RetryResult type for convenience
  */
-export { RetryResult, RetryAttempt } from './RetryableRequest';
+export { RetryResult, RetryAttempt } from './RetryableRequest.js';

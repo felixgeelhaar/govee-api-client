@@ -7,7 +7,7 @@ import {
   DiyScene,
   SegmentColor,
   MusicMode,
-} from '../value-objects';
+} from '../value-objects/index.js';
 
 export abstract class Command {
   abstract readonly name: string;

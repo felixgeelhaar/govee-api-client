@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **The package now works in native Node ESM** ([#58](https://github.com/felixgeelhaar/govee-api-client/issues/58)). It can be imported directly in Node without a bundler and resolves in webpack 5, and TypeScript projects on `NodeNext` / `Node16` get the full type definitions. All relative imports and exports now name the emitted file (e.g. `./GoveeClient.js`). Projects using esbuild or TypeScript with `bundler` / `node` resolution continue to work without changes.
+
+### Changed
+
+- The build now uses `"module": "NodeNext"` and `"moduleResolution": "NodeNext"`, so `tsc` enforces complete relative import paths at compile time (TS2835).
+
 ## [3.3.8] - 2026-06-03
 
 ### Fixed

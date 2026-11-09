@@ -1,1 +1,1 @@
-export { GoveeControlService, type GoveeControlServiceConfig } from './GoveeControlService';
+export { GoveeControlService, type GoveeControlServiceConfig } from './GoveeControlService.js';
