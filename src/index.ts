@@ -1,7 +1,7 @@
-export type { CommandOptions } from './domain/repositories/CommandOptions';
+export type { CommandOptions } from './domain/repositories/CommandOptions.js';
 
 // Main client
-export { GoveeClient, type GoveeClientConfig } from './GoveeClient';
+export { GoveeClient, type GoveeClientConfig } from './GoveeClient.js';
 
 // Domain entities
 export {
@@ -33,7 +33,7 @@ export {
   type ToggleState,
   type ModeState,
   type StateProperty,
-} from './domain/entities';
+} from './domain/entities/index.js';
 
 // Value objects
 export {
@@ -45,7 +45,7 @@ export {
   DiyScene,
   SegmentColor,
   MusicMode,
-} from './domain/value-objects';
+} from './domain/value-objects/index.js';
 
 // Error classes
 export {
@@ -55,12 +55,12 @@ export {
   RateLimitError,
   NetworkError,
   ValidationError,
-} from './errors';
+} from './errors/index.js';
 
 // Services and repositories (for advanced usage)
-export { GoveeControlService, type GoveeControlServiceConfig } from './services';
-export { GoveeDeviceRepository } from './infrastructure';
-export { type IGoveeDeviceRepository } from './domain/repositories';
+export { GoveeControlService, type GoveeControlServiceConfig } from './services/index.js';
+export { GoveeDeviceRepository } from './infrastructure/index.js';
+export { type IGoveeDeviceRepository } from './domain/repositories/index.js';
 
 // Retry infrastructure (for custom retry policies)
 export {
@@ -71,7 +71,7 @@ export {
   type RetryCondition,
   type CircuitBreakerConfig,
   type RetryMetrics,
-} from './infrastructure/retry';
+} from './infrastructure/retry/index.js';
 
 // Validation schemas (for advanced usage)
 export {
@@ -83,4 +83,4 @@ export {
   type GoveeStateResponse,
   type GoveeCommandResponse,
   type GoveeDynamicScenesResponse,
-} from './infrastructure/response-schemas';
+} from './infrastructure/response-schemas.js';

@@ -1,9 +1,9 @@
-import type { CommandOptions } from '../domain/repositories/CommandOptions';
+import type { CommandOptions } from '../domain/repositories/CommandOptions.js';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { z } from 'zod';
 import { Logger } from 'pino';
-import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepository';
-import { GoveeDevice } from '../domain/entities/GoveeDevice';
+import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepository.js';
+import { GoveeDevice } from '../domain/entities/GoveeDevice.js';
 import {
   DeviceState,
   StateProperty,
@@ -11,8 +11,8 @@ import {
   ColorState,
   ColorTemperatureState,
   BrightnessState,
-} from '../domain/entities/DeviceState';
-import { Command } from '../domain/entities/Command';
+} from '../domain/entities/DeviceState.js';
+import { Command } from '../domain/entities/Command.js';
 import {
   ColorRgb,
   ColorTemperature,
@@ -22,14 +22,14 @@ import {
   DiyScene,
   SegmentColor,
   MusicMode,
-} from '../domain/value-objects';
+} from '../domain/value-objects/index.js';
 import {
   GoveeApiError,
   InvalidApiKeyError,
   RateLimitError,
   NetworkError,
   ValidationError,
-} from '../errors';
+} from '../errors/index.js';
 import {
   GoveeDevicesEnvelopeSchema,
   GoveeDeviceShellSchema,
@@ -39,7 +39,7 @@ import {
   GoveeCommandResponseSchema,
   GoveeDynamicScenesResponseSchema,
   GoveeDiyScenesResponseSchema,
-} from './response-schemas';
+} from './response-schemas.js';
 
 interface GoveeApiConfig {
   apiKey: string;
