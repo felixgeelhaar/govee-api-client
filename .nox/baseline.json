@@ -1,0 +1,149 @@
+{
+  "schema_version": "1.0.0",
+  "entries": [
+    {
+      "fingerprint": "d377d11e5e3309dcb61ac41e6b7134ad8f48d00353ff65b7e029e7189aa0eb0c",
+      "rule_id": "IAC-306",
+      "file_path": ".github/workflows/publish-beta.yml",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:17:54.313208Z",
+      "reason": "Reviewed: id-token write is required for npm provenance (--provenance); scoped to the publish job only."
+    },
+    {
+      "fingerprint": "be245a4499fe01a73e9664baf0ed8c855e243ef4da2b278bd541e113a9dfae2e",
+      "rule_id": "IAC-306",
+      "file_path": ".github/workflows/release.yml",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:17:54.313208Z",
+      "reason": "Reviewed: id-token write is required for npm provenance (--provenance); scoped to the publish job only."
+    },
+    {
+      "fingerprint": "52922952e40b8c5ebd4fef0969dd782d57266e9ecccc4e9bddc9be74f0f6daa2",
+      "rule_id": "IAC-308",
+      "file_path": ".github/workflows/nox-remediate.yml",
+      "severity": "low",
+      "created_at": "2026-11-15T10:17:54.313208Z",
+      "reason": "Reviewed: workflow_dispatch is intentional for maintainer-run remediation and beta publishing."
+    },
+    {
+      "fingerprint": "64345a5615fb121a1f112509de339d695e5a2f36198d4dcab3e9352cf468036f",
+      "rule_id": "IAC-308",
+      "file_path": ".github/workflows/publish-beta.yml",
+      "severity": "low",
+      "created_at": "2026-11-15T10:17:54.313208Z",
+      "reason": "Reviewed: workflow_dispatch is intentional for maintainer-run remediation and beta publishing."
+    },
+    {
+      "fingerprint": "8c9a05e7d0c8a05b61d4c18aefce8e2dc91a85c3456246a1c92bea30dbb416d8",
+      "rule_id": "IAC-309",
+      "file_path": ".github/workflows/ci.yml",
+      "severity": "low",
+      "created_at": "2026-11-15T10:17:54.313208Z",
+      "reason": "Reviewed: cancelling superseded CI runs on the same ref is intended."
+    },
+    {
+      "fingerprint": "8378df7a1d4adb5806616a668bc89e456b48fe9b7212ca5799b5b8eddbe0ae9c",
+      "rule_id": "IAC-314",
+      "file_path": ".github/workflows/nox-remediate.yml",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:17:54.313208Z",
+      "reason": "Reviewed: contents write needed to create GitHub releases / push remediation PRs; scoped to the single job."
+    },
+    {
+      "fingerprint": "e37e2faa5f7d812400d1323a31d22e93b710b881ea06f3b656d724454d47a8f4",
+      "rule_id": "IAC-314",
+      "file_path": ".github/workflows/release.yml",
+      "severity": "low",
+      "created_at": "2026-11-15T10:17:54.313208Z",
+      "reason": "Reviewed: contents write needed to create GitHub releases / push remediation PRs; scoped to the single job."
+    },
+    {
+      "fingerprint": "91a2b895c00e044b86ddd061ef915bad3146889cf0e036c2799c7cbb351e89aa",
+      "rule_id": "AI-050",
+      "file_path": "src/infrastructure/retry/RetryPolicy.ts",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: RetryPolicy metrics counters (totalRetryTimeMs etc.), not an AI token budget."
+    },
+    {
+      "fingerprint": "485dbdd2893f49e1eacc12dbacb0cd7d354adf5999ff025530c5e20392dd37c0",
+      "rule_id": "DATA-001",
+      "file_path": "tests/unit/errors/ValidationError.test.ts",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: placeholder email literal in a unit test."
+    },
+    {
+      "fingerprint": "18ab7a61b657dec2804127f6d4955ea4735fe9171b9412526422b8b0685d7381",
+      "rule_id": "IAC-351",
+      "file_path": ".github/workflows/publish-beta.yml",
+      "severity": "critical",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: id-token: write is a permission scope for OIDC provenance, not a hardcoded secret."
+    },
+    {
+      "fingerprint": "4da2ab2e8a1568ed77c34c43d4300b9832edda20314f01fae4569a227612fbb8",
+      "rule_id": "IAC-351",
+      "file_path": ".github/workflows/release.yml",
+      "severity": "critical",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: id-token: write is a permission scope for OIDC provenance, not a hardcoded secret."
+    },
+    {
+      "fingerprint": "e3ca911459b78c684dc724ba4c68f561663a5a1bca8425cc9f93169ee13bbb0d",
+      "rule_id": "SEC-163",
+      "file_path": "scripts/discover-device-capabilities.ts",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: reads GOVEE_API_KEY from the environment (or a dummy test value), no secret committed."
+    },
+    {
+      "fingerprint": "fdd18a4c5562c78c6ba67ec7238cf6475009e93ad51c6596aa1728cccc29e6b4",
+      "rule_id": "SEC-163",
+      "file_path": "tests/integration/AdvancedLightControl.test.ts",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: reads GOVEE_API_KEY from the environment (or a dummy test value), no secret committed."
+    },
+    {
+      "fingerprint": "5e8e1563d8c1006aa6e60e58384c076d6b02a77b2088cc349a804b2309b3f700",
+      "rule_id": "SEC-163",
+      "file_path": "tests/integration/GoveeClient.test.ts",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: reads GOVEE_API_KEY from the environment (or a dummy test value), no secret committed."
+    },
+    {
+      "fingerprint": "339e3e4fd834a60e7f25d991f74a0d3e1d011b3fa0620280c85085bd13138768",
+      "rule_id": "SEC-163",
+      "file_path": "tests/unit/errors/Errors.test.ts",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: reads GOVEE_API_KEY from the environment (or a dummy test value), no secret committed."
+    },
+    {
+      "fingerprint": "d18b22c5fb61eecc0b62ccc69457cf0e200f591b9a7f730869377b87c140ee92",
+      "rule_id": "VULN-002",
+      "file_path": "package-lock.json",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:25.939947Z",
+      "reason": "False positive: msw (Mock Service Worker) is a legitimate package, flagged as typosquat of ms."
+    },
+    {
+      "fingerprint": "efffd45e45bdf218052ebd23a0a2fc2295219290f6341d868fed455c871b6993",
+      "rule_id": "IAC-155",
+      "file_path": ".github/workflows/nox-remediate.yml",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:49.846644Z",
+      "reason": "Reviewed: manual dispatch is intentional (maintainer-run remediation / beta publish); publish job is further restricted to refs/heads/develop."
+    },
+    {
+      "fingerprint": "1a02de4253b67ad52df2d4d3b1d3bf45c5b9a18c2b4c7942eaea05f84d9de956",
+      "rule_id": "IAC-155",
+      "file_path": ".github/workflows/publish-beta.yml",
+      "severity": "medium",
+      "created_at": "2026-11-15T10:18:49.846644Z",
+      "reason": "Reviewed: manual dispatch is intentional (maintainer-run remediation / beta publish); publish job is further restricted to refs/heads/develop."
+    }
+  ]
+}
