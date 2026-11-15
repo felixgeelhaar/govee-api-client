@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/@felixgeelhaar/govee-api-client)](https://www.npmjs.com/package/@felixgeelhaar/govee-api-client)
 [![npm downloads](https://img.shields.io/npm/dm/@felixgeelhaar/govee-api-client)](https://www.npmjs.com/package/@felixgeelhaar/govee-api-client)
 [![CI](https://github.com/felixgeelhaar/govee-api-client/workflows/CI/badge.svg)](https://github.com/felixgeelhaar/govee-api-client/actions)
+[![nox security grade](.github/nox-badge.svg)](.github/workflows/ci.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/felixgeelhaar/govee-api-client/badge.svg)](https://snyk.io/test/github/felixgeelhaar/govee-api-client)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)

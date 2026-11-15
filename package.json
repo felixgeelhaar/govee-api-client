@@ -46,13 +46,13 @@
   "devDependencies": {
     "@types/nock": "10.0.3",
     "@types/node": "^25.6.2",
-    "@vitest/coverage-v8": "^4.1.5",
-    "@vitest/ui": "^4.1.5",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/ui": "^5.1.0",
     "msw": "^2.14.5",
     "nock": "^14.0.15",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
+    "vitest": "^5.1.0"
   },
   "engines": {
     "node": ">=20.0.0"

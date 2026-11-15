@@ -36,9 +36,5 @@ scan:
     - "**/*.md"
 
 # NOTE: package-lock.json is deliberately NOT excluded so dependency-vulnerability
-# scanning stays active. Its one current finding — VULN-002 (medium, low
-# confidence) "msw is suspiciously similar to ms" — is a false positive (msw =
-# Mock Service Worker, a legitimate widely-used package). It is medium severity,
-# so it does not trip the critical/high CI gate. If it ever becomes noisy,
-# accept it explicitly with `nox baseline add <fingerprint>` + commit .nox/,
-# never by excluding the whole lockfile.
+# scanning stays active. Reviewed findings are accepted in .nox/baseline.json
+# (each with a reason), never by excluding the whole lockfile.
