@@ -6,8 +6,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   test:
@@ -75,6 +74,8 @@ jobs:
   create-release:
     needs: publish-npm
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
