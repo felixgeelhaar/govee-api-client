@@ -1,5 +1,5 @@
 import { ZodError } from 'zod';
-import { GoveeApiClientError } from './GoveeApiClientError';
+import { GoveeApiClientError } from './GoveeApiClientError.js';
 
 /**
  * Error thrown when API response validation fails using Zod schemas

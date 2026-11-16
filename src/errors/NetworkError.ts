@@ -1,4 +1,4 @@
-import { GoveeApiClientError } from './GoveeApiClientError';
+import { GoveeApiClientError } from './GoveeApiClientError.js';
 
 export class NetworkError extends GoveeApiClientError {
   readonly code = 'NETWORK_ERROR';

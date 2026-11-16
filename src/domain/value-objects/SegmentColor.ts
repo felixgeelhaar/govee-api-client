@@ -1,5 +1,5 @@
-import { ColorRgb } from './ColorRgb';
-import { Brightness } from './Brightness';
+import { ColorRgb } from './ColorRgb.js';
+import { Brightness } from './Brightness.js';
 
 /**
  * SegmentColor value object represents a color configuration for a specific

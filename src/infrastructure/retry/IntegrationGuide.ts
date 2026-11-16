@@ -6,8 +6,8 @@
  */
 
 import { Logger } from 'pino';
-import { GoveeDeviceRepository } from '../GoveeDeviceRepository';
-import { GoveeControlService } from '../../services/GoveeControlService';
+import { GoveeDeviceRepository } from '../GoveeDeviceRepository.js';
+import { GoveeControlService } from '../../services/index.js';
 import {
   RetryPolicy,
   RetryExecutor,
@@ -15,7 +15,7 @@ import {
   RetryConfigPresets,
   RetryConfigBuilder,
   RetryExecutorFactory,
-} from './index';
+} from './index.js';
 
 /**
  * INTEGRATION EXAMPLE 1: Basic Retry-Enabled Repository
@@ -377,4 +377,4 @@ export class RetryConfigFactory {
 }
 
 // Re-export for convenience
-export { RetryExecutorFactory } from './RetryableRequest';
+export { RetryExecutorFactory } from './RetryableRequest.js';

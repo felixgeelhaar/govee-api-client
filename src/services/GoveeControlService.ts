@@ -1,9 +1,9 @@
-import type { CommandOptions } from '../domain/repositories/CommandOptions';
+import type { CommandOptions } from '../domain/repositories/CommandOptions.js';
 import { Logger } from 'pino';
-import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepository';
-import { GoveeDevice } from '../domain/entities/GoveeDevice';
-import { DeviceState } from '../domain/entities/DeviceState';
-import { Command, CommandFactory } from '../domain/entities/Command';
+import { IGoveeDeviceRepository } from '../domain/repositories/IGoveeDeviceRepository.js';
+import { GoveeDevice } from '../domain/entities/GoveeDevice.js';
+import { DeviceState } from '../domain/entities/DeviceState.js';
+import { Command, CommandFactory } from '../domain/entities/Command.js';
 import {
   ColorRgb,
   ColorTemperature,
@@ -13,14 +13,17 @@ import {
   DiyScene,
   SegmentColor,
   MusicMode,
-} from '../domain/value-objects';
-import { SlidingWindowRateLimiter, SlidingWindowRateLimiterConfig } from '../infrastructure';
+} from '../domain/value-objects/index.js';
+import {
+  SlidingWindowRateLimiter,
+  SlidingWindowRateLimiterConfig,
+} from '../infrastructure/index.js';
 import {
   RetryableRepository,
   RetryExecutor,
   RetryPolicy,
   RetryConfigPresets,
-} from '../infrastructure/retry';
+} from '../infrastructure/retry/index.js';
 
 export interface GoveeControlServiceConfig {
   repository: IGoveeDeviceRepository;

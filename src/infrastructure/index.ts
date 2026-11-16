@@ -1,6 +1,6 @@
-export { GoveeDeviceRepository } from './GoveeDeviceRepository';
+export { GoveeDeviceRepository } from './GoveeDeviceRepository.js';
 export {
   SlidingWindowRateLimiter,
   type SlidingWindowRateLimiterConfig,
-} from './SlidingWindowRateLimiter';
-export * from './retry';
+} from './SlidingWindowRateLimiter.js';
+export * from './retry/index.js';

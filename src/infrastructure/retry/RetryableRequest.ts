@@ -1,7 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { Logger } from 'pino';
-import { GoveeApiClientError, NetworkError } from '../../errors';
-import { RetryPolicy } from './RetryPolicy';
+import { GoveeApiClientError, NetworkError } from '../../errors/index.js';
+import { RetryPolicy } from './RetryPolicy.js';
 
 /**
  * Represents a request that can be retried

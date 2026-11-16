@@ -1,4 +1,4 @@
-import { GoveeApiClientError } from './GoveeApiClientError';
+import { GoveeApiClientError } from './GoveeApiClientError.js';
 
 export class InvalidApiKeyError extends GoveeApiClientError {
   readonly code = 'INVALID_API_KEY';

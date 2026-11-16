@@ -5,8 +5,8 @@ import {
   JitterConfig,
   RetryCondition,
   CircuitBreakerConfig,
-} from './RetryPolicy';
-import { RateLimitError, NetworkError, GoveeApiError } from '../../errors';
+} from './RetryPolicy.js';
+import { RateLimitError, NetworkError, GoveeApiError } from '../../errors/index.js';
 
 /**
  * Environment-specific retry configuration presets

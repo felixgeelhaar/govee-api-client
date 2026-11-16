@@ -5,7 +5,7 @@ import {
   NetworkError,
   GoveeApiError,
   InvalidApiKeyError,
-} from '../../errors';
+} from '../../errors/index.js';
 
 /**
  * Backoff strategy configuration for retry policies
